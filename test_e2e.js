@@ -156,8 +156,13 @@ async function runE2ETests() {
     assert(plannerExcelRes.data.length > 3000, 'Planner excel report should be > 3000 bytes');
     console.log(`[PASS] 14. Next Year Planner Excel Report: ${plannerExcelRes.data.length} bytes generated.`);
 
+    // Restore official 2026 church budget (Sheet1 exact 9,000,000 KRW)
+    const { seed2026Budget } = require('./server/seed_2026_budget');
+    await seed2026Budget();
+    console.log('[PASS] 15. Official 2026 Budget Restored (9,000,000 KRW).');
+
     console.log('\n========================================');
-    console.log('>>> ALL 14 E2E TESTS PASSED 100%! <<<');
+    console.log('>>> ALL 15 E2E TESTS PASSED 100%! <<<');
     console.log('========================================');
   } catch (err) {
     console.error('E2E TEST FAILED:', err.message, err.response ? err.response.data : '');
