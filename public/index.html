@@ -60,9 +60,7 @@
   </script>
   <style>
     body { font-family: 'Pretendard', sans-serif; background-color: #FAF8F5; color: #100F0E; }
-    .hud-brackets {
-      position: relative;
-    }
+    .hud-brackets { position: relative; }
     .hud-brackets::before {
       content: '';
       position: absolute;
@@ -97,17 +95,31 @@
       </div>
       <div>
         <h1 class="text-xs font-bold tracking-wider uppercase text-yds-ink-900 font-mono">
-          YOONIKON // RECEIPT-LEDGER
+          YOONIKON // CHURCH-RECEIPT-LEDGER
         </h1>
       </div>
     </div>
 
-    <!-- Telemetry Link & Config Action -->
-    <div class="flex items-center gap-3">
+    <!-- Actions & Sync Deck -->
+    <div class="flex items-center gap-2.5">
       <div id="ollamaStatusBadge" class="flex items-center gap-2 text-xs px-2.5 py-1 rounded-md bg-yds-ivory border border-yds-border text-yds-ink-700 font-mono">
         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
         <span id="ollamaStatusText">TELEMETRY LINKING...</span>
       </div>
+
+      <!-- Cross-PC Portability (Backup & Restore) -->
+      <button onclick="downloadBackup()" class="px-3 py-1.5 text-xs rounded-md border border-yds-borderStrong bg-white hover:bg-yds-ivory text-yds-ink-800 flex items-center gap-1.5 transition-colors font-mono shadow-xs" title="다른 PC로 이동할 수 있도록 전체 데이터(영수증/예산/수입)를 JSON으로 백업">
+        <i data-lucide="hard-drive-download" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+        <span>데이터 백업</span>
+      </button>
+      <input type="file" id="restoreFileInput" accept=".json" class="hidden" onchange="handleRestoreUpload(event)">
+      <button onclick="document.getElementById('restoreFileInput').click()" class="px-3 py-1.5 text-xs rounded-md border border-yds-borderStrong bg-white hover:bg-yds-ivory text-yds-ink-800 flex items-center gap-1.5 transition-colors font-mono shadow-xs" title="백업된 JSON 파일로부터 전체 데이터 즉시 복원">
+        <i data-lucide="hard-drive-upload" class="w-3.5 h-3.5 text-yds-gold-600"></i>
+        <span>데이터 복원</span>
+      </button>
+
+      <div class="h-4 w-px bg-yds-borderStrong mx-1"></div>
+
       <button onclick="openConfigModal()" class="px-3 py-1.5 text-xs rounded-md border border-yds-border bg-white hover:bg-yds-ivory text-yds-ink-800 flex items-center gap-1.5 transition-colors font-mono shadow-xs">
         <i data-lucide="sliders" class="w-3.5 h-3.5 text-yds-pineTeal-500"></i>
         <span>AI_CONFIG</span>
@@ -119,33 +131,52 @@
     </div>
   </header>
 
+  <!-- Navigation View Tabs -->
+  <nav class="bg-white border-b border-yds-border px-6 py-2 flex items-center gap-2">
+    <button onclick="switchView('expenses')" id="navTabExpenses" class="nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-pineTeal-500 text-white shadow-xs">
+      <i data-lucide="receipt" class="w-4 h-4"></i>
+      <span>지출 및 영수증 (EXPENSES)</span>
+    </button>
+    <button onclick="switchView('income')" id="navTabIncome" class="nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-700 border border-yds-border transition-colors">
+      <i data-lucide="hand-coins" class="w-4 h-4 text-emerald-600"></i>
+      <span>수입 및 찬조/물품 관리 (INCOME & SPONSORSHIP)</span>
+    </button>
+    <button onclick="switchView('budget')" id="navTabBudget" class="nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-700 border border-yds-border transition-colors">
+      <i data-lucide="pie-chart" class="w-4 h-4 text-yds-pineTeal-600"></i>
+      <span>연간 예산 및 집행현황 (ANNUAL BUDGET)</span>
+    </button>
+    <button onclick="switchView('planner')" id="navTabPlanner" class="nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-700 border border-yds-border transition-colors">
+      <i data-lucide="trending-up" class="w-4 h-4 text-amber-600"></i>
+      <span>차년도 예산안 기획 (NEXT YEAR PLAN)</span>
+    </button>
+  </nav>
+
   <!-- Main Container -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
 
-    <!-- Upload & Template Deck -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      
-      <!-- Card 1: Receipt Ingestion HUD -->
-      <div class="lg:col-span-2 bg-white border border-yds-border rounded-xl p-5 flex flex-col justify-between shadow-xs hud-brackets">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
-              <i data-lucide="radio" class="w-4 h-4 text-yds-pineTeal-500"></i>
-              [SEC-01] RECEIPT TELEMETRY INGESTION
-            </h2>
-            <span id="receiptCountBadge" class="text-xs font-mono px-2 py-0.5 rounded bg-yds-ivory text-yds-ink-700 border border-yds-border font-medium">0 건 등록</span>
-          </div>
-          <div id="dropZone" class="border border-dashed border-yds-borderStrong hover:border-yds-pineTeal-500 bg-yds-canvas rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center relative">
-            <input type="file" id="receiptFileInput" multiple accept="image/*,application/pdf" class="hidden">
-            <input type="file" id="rowImageFileInput" accept="image/*" class="hidden">
-            <div class="w-11 h-11 rounded-lg bg-white border border-yds-border flex items-center justify-center mb-3 text-yds-pineTeal-500 shadow-xs">
-              <i data-lucide="scan-line" class="w-5 h-5"></i>
-            </div>
-            <p class="text-sm font-semibold text-yds-ink-900 mb-1">영수증 파일 드래그 앤 드롭, 선택 또는 <span class="text-yds-pineTeal-600 font-bold underline decoration-yds-pineTeal-300">Ctrl + V 붙여넣기</span></p>
-            <p class="text-xs text-yds-ink-500 font-mono">SUPPORT: 캡처 복사 즉시 붙여넣기(Ctrl+V), JPG, PNG, WEBP, PDF</p>
-          </div>
+    <!-- ======================================================== -->
+    <!-- VIEW 1: EXPENSES & RECEIPTS                              -->
+    <!-- ======================================================== -->
+    <div id="viewExpenses" class="space-y-6">
+      <!-- Full-Width Receipt Ingestion HUD -->
+      <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs hud-brackets">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+            <i data-lucide="radio" class="w-4 h-4 text-yds-pineTeal-500"></i>
+            RECEIPT TELEMETRY INGESTION (영수증 일괄 파싱 및 입력)
+          </h2>
+          <span id="receiptCountBadge" class="text-xs font-mono px-2.5 py-1 rounded bg-yds-ivory text-yds-ink-700 border border-yds-border font-medium">0 건 등록</span>
         </div>
-        <div id="uploadProgressContainer" class="hidden mt-4 pt-3 border-t border-yds-border">
+        <div id="dropZone" class="border border-dashed border-yds-borderStrong hover:border-yds-pineTeal-500 bg-yds-canvas rounded-lg p-6 text-center cursor-pointer transition-colors flex flex-col items-center justify-center relative">
+          <input type="file" id="receiptFileInput" multiple accept="image/*,application/pdf" class="hidden">
+          <input type="file" id="rowImageFileInput" accept="image/*" class="hidden">
+          <div class="w-10 h-10 rounded-lg bg-white border border-yds-border flex items-center justify-center mb-2.5 text-yds-pineTeal-500 shadow-xs">
+            <i data-lucide="scan-line" class="w-5 h-5"></i>
+          </div>
+          <p class="text-sm font-semibold text-yds-ink-900 mb-1">영수증 파일 드래그 앤 드롭, 선택 또는 <span class="text-yds-pineTeal-600 font-bold underline decoration-yds-pineTeal-300">Ctrl + V 붙여넣기</span></p>
+          <p class="text-xs text-yds-ink-500 font-mono">화면 어디서든 영수증 스크린샷 캡처 후 Ctrl+V를 누르면 즉시 자동 OCR 및 회계코드 추천 파싱</p>
+        </div>
+        <div id="uploadProgressContainer" class="hidden mt-3 pt-3 border-t border-yds-border">
           <div class="flex justify-between text-xs text-yds-ink-700 mb-1.5 font-mono">
             <span id="progressStatusText">파싱 스트림 가동 중...</span>
             <span id="progressPercentText" class="text-yds-pineTeal-500 font-bold">0%</span>
@@ -156,124 +187,459 @@
         </div>
       </div>
 
-      <!-- Card 2: Excel Template Ingestion HUD -->
-      <div class="bg-white border border-yds-border rounded-xl p-5 flex flex-col justify-between shadow-xs hud-brackets">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
-              <i data-lucide="file-spreadsheet" class="w-4 h-4 text-yds-gold-500"></i>
-              [SEC-02] EXCEL TEMPLATE MAPPER
-            </h2>
-            <span id="templateStatusBadge" class="text-[11px] px-2 py-0.5 rounded bg-yds-ivory text-yds-ink-700 border border-yds-border font-mono font-medium">STANDALONE</span>
+      <!-- Receipts Data Grid HUD (Light Craft Table) -->
+      <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs flex flex-col">
+        <div class="px-5 py-3 border-b border-yds-border flex flex-wrap items-center justify-between gap-3 bg-yds-canvas">
+          <div class="flex items-center gap-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="activity" class="w-4 h-4 text-yds-pineTeal-500"></i>
+              TELEMETRY DATA GRID (지출 증빙 내역)
+            </h3>
+            <span id="totalSummaryText" class="text-xs font-mono font-semibold text-yds-pineTeal-600">총 0건 | 합계: 0원</span>
           </div>
-          <p class="text-xs text-yds-ink-500 mb-4 leading-relaxed font-sans">
-            정리할 기준 엑셀 서식을 업로드하면 컬럼 헤더를 분석하여 영수증 데이터와 1:1 매핑합니다.
-          </p>
-          <input type="file" id="templateFileInput" accept=".xlsx" class="hidden">
-          <button onclick="document.getElementById('templateFileInput').click()" class="w-full py-2.5 px-4 rounded-lg bg-yds-ivory hover:bg-[#F0EBE3] text-xs text-yds-ink-800 border border-yds-borderStrong flex items-center justify-center gap-2 transition-colors font-mono font-medium">
-            <i data-lucide="upload" class="w-3.5 h-3.5 text-yds-gold-500"></i>
-            <span id="templateBtnLabel">엑셀 템플릿(.xlsx) 로드</span>
-          </button>
+          
+          <!-- Tactical Export Actions -->
+          <div class="flex items-center gap-2">
+            <button onclick="addManualRow()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="새로운 영수증 행을 직접 수기 입력">
+              <i data-lucide="plus" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+              <span>수기 행 추가</span>
+            </button>
+            <button onclick="sortByDate()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs">
+              <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 text-yds-ink-500"></i>
+              <span>날짜순 정렬</span>
+            </button>
+            <div class="h-4 w-px bg-yds-borderStrong mx-0.5"></div>
+            <button onclick="exportChurchExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="2026년 유년부 월별 회계장부 양식으로 자동 수입/지출 코드 매핑 및 찬조물품대장 동시 출력">
+              <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+              <span>교회 회계장부(.XLSX)</span>
+            </button>
+            <button onclick="exportChurchPPTX()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white border border-amber-700 flex items-center gap-1.5 font-mono shadow-xs" title="감사준비 출력용 A4 세로 2x2 4분할 증빙철">
+              <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              <span>감사 4분할 PPTX</span>
+            </button>
+            <button onclick="exportPDF()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+              <span>감사용 PDF</span>
+            </button>
+            <button onclick="clearAll()" class="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200" title="전체 삭제">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </div>
-        <div id="mappingButtonContainer" class="hidden mt-4 pt-3 border-t border-yds-border">
-          <button onclick="openMappingModal()" class="w-full py-2 px-3 rounded-lg bg-yds-pineTeal-50 hover:bg-yds-pineTeal-100 text-xs text-yds-pineTeal-700 border border-yds-pineTeal-200 flex items-center justify-center gap-1.5 font-mono font-medium">
-            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
-            <span>컬럼 매핑 라우팅 확인/수정</span>
-          </button>
+
+        <!-- Monthly Tabs Navigation Bar -->
+        <div class="px-5 py-2.5 bg-yds-ivory/60 border-b border-yds-border flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 max-w-full" id="monthTabsContainer">
+            <!-- Rendered dynamically: [전체] [1월] [2월] ... [12월] -->
+          </div>
+          <div id="monthStatsText" class="text-xs font-mono font-semibold text-yds-pineTeal-700 bg-white px-3 py-1 rounded-md border border-yds-borderStrong shadow-2xs whitespace-nowrap">
+            전체: 0건 | 0원
+          </div>
+        </div>
+
+        <!-- Table Body -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
+                <th class="py-2.5 px-3 w-10 text-center">NO</th>
+                <th class="py-2.5 px-3 w-28">DATE</th>
+                <th class="py-2.5 px-3 w-36">MERCHANT</th>
+                <th class="py-2.5 px-3">ITEMS</th>
+                <th class="py-2.5 px-2 w-14 text-center">QTY</th>
+                <th class="py-2.5 px-3 w-48">CODE (과목추천)</th>
+                <th class="py-2.5 px-2 w-20">METHOD</th>
+                <th class="py-2.5 px-3 w-24 text-right">SUPPLY</th>
+                <th class="py-2.5 px-3 w-20 text-right">TAX</th>
+                <th class="py-2.5 px-3 w-28 text-right">TOTAL</th>
+                <th class="py-2.5 px-2 w-20 text-center">PROOF</th>
+                <th class="py-2.5 px-2 w-10 text-center">DEL</th>
+              </tr>
+            </thead>
+            <tbody id="receiptTableBody" class="divide-y divide-yds-border text-yds-ink-800">
+              <tr>
+                <td colspan="12" class="py-12 text-center text-yds-ink-400 font-mono">
+                  NO RECEIPTS INGESTED. DRAG & DROP EVIDENCE FILES ABOVE.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-
     </div>
 
-    <!-- Receipts Data Grid HUD (Light Craft Table) -->
-    <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs flex flex-col">
-      <div class="px-5 py-3 border-b border-yds-border flex flex-wrap items-center justify-between gap-3 bg-yds-canvas">
+    <!-- ======================================================== -->
+    <!-- VIEW 2: INCOME & SPONSORSHIP / DONATION                  -->
+    <!-- ======================================================== -->
+    <div id="viewIncome" class="hidden space-y-6">
+      <!-- Income KPI Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-yds-ink-500 font-medium uppercase mb-1">총 금전 수입 (청구액/찬조금 등)</div>
+            <div id="incomeTotalCashText" class="text-xl font-bold font-mono text-emerald-700">0 원</div>
+            <div class="text-[11px] text-yds-ink-500 mt-1">교회 장부 [수입금액] 난에 직접 합산</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+            <i data-lucide="badge-dollar-sign" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-yds-ink-500 font-medium uppercase mb-1">찬조 물품 건수 및 수량 (비금전)</div>
+            <div id="incomeInKindCountText" class="text-xl font-bold font-mono text-yds-pineTeal-700">0 건 / 0 개</div>
+            <div class="text-[11px] text-yds-ink-500 mt-1">간식, 빵, 도서, 선물 등 물품 후원</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-yds-pineTeal-50 border border-yds-pineTeal-200 flex items-center justify-center text-yds-pineTeal-600">
+            <i data-lucide="package-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono text-yds-ink-500 font-medium uppercase mb-1">찬조 물품 환산 가치 (추정)</div>
+            <div id="incomeInKindValueText" class="text-xl font-bold font-mono text-amber-700">0 원</div>
+            <div class="text-[11px] text-yds-ink-500 mt-1">감사용 [찬조물품대장] 시트에 기록</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+            <i data-lucide="gift" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Income Table Card -->
+      <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs flex flex-col">
+        <div class="px-5 py-3 border-b border-yds-border flex flex-wrap items-center justify-between gap-3 bg-yds-canvas">
+          <div class="flex items-center gap-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="list-checks" class="w-4 h-4 text-emerald-600"></i>
+              INCOME & DONATION LEDGER (수입 및 찬조 관리대장)
+            </h3>
+            <span id="incomeTableCountBadge" class="text-xs font-mono font-semibold text-emerald-700">총 0건</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Filter buttons -->
+            <button onclick="setIncomeFilter('ALL')" id="incFilterAll" class="px-3 py-1.5 text-xs font-mono rounded-lg border bg-yds-pineTeal-600 text-white font-medium">전체</button>
+            <button onclick="setIncomeFilter('CASH')" id="incFilterCash" class="px-3 py-1.5 text-xs font-mono rounded-lg border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">금전 수입</button>
+            <button onclick="setIncomeFilter('KIND')" id="incFilterKind" class="px-3 py-1.5 text-xs font-mono rounded-lg border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">찬조 물품(비금전)</button>
+            <div class="h-4 w-px bg-yds-borderStrong mx-1"></div>
+            <button onclick="openIncomeModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>+ 수입/찬조 등록</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
+                <th class="py-2.5 px-3 w-10 text-center">NO</th>
+                <th class="py-2.5 px-3 w-28">DATE</th>
+                <th class="py-2.5 px-2.5 w-24 text-center">구분</th>
+                <th class="py-2.5 px-3 w-40">과목코드</th>
+                <th class="py-2.5 px-3 w-36">기증자/입금처</th>
+                <th class="py-2.5 px-3">품목명 / 내역</th>
+                <th class="py-2.5 px-2 w-14 text-center">수량</th>
+                <th class="py-2.5 px-3 w-28 text-right">금액(환산가)</th>
+                <th class="py-2.5 px-3">비고 / 용도</th>
+                <th class="py-2.5 px-2 w-16 text-center">관리</th>
+              </tr>
+            </thead>
+            <tbody id="incomeTableBody" class="divide-y divide-yds-border text-yds-ink-800">
+              <tr>
+                <td colspan="10" class="py-12 text-center text-yds-ink-400 font-mono">
+                  등록된 수입 및 찬조 내역이 없습니다. [+ 수입/찬조 등록] 버튼을 클릭하세요.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3: ANNUAL BUDGET MANAGEMENT                         -->
+    <!-- ======================================================== -->
+    <div id="viewBudget" class="hidden space-y-6">
+      <!-- Budget Header Bar -->
+      <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
-            <i data-lucide="activity" class="w-4 h-4 text-yds-pineTeal-500"></i>
-            TELEMETRY DATA GRID (CHRONOLOGICAL)
-          </h3>
-          <span id="totalSummaryText" class="text-xs font-mono font-semibold text-yds-pineTeal-600">총 0건 | 합계: 0원</span>
+          <div class="w-9 h-9 rounded-lg bg-yds-pineTeal-50 border border-yds-pineTeal-200 flex items-center justify-center text-yds-pineTeal-600">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-yds-ink-900 font-mono">2026년 교회 유년부 연간 예산 책정 및 집행현황</h2>
+            <p class="text-xs text-yds-ink-500">1년에 한 번 정기 예산을 입력하고, 등록된 영수증 지출과 대조하여 실시간 소진율을 추적합니다.</p>
+          </div>
         </div>
-        
-        <!-- Tactical Export Actions -->
         <div class="flex items-center gap-2">
-          <button onclick="addManualRow()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="새로운 영수증 행을 직접 수기 입력">
-            <i data-lucide="plus" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
-            <span>수기 행 추가</span>
-          </button>
-          <button onclick="sortByDate()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs">
-            <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 text-yds-ink-500"></i>
-            <span>날짜순 정렬</span>
-          </button>
-          <button onclick="exportExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-yds-pineTeal-500 hover:bg-yds-pineTeal-600 text-white border border-yds-pineTeal-700 flex items-center gap-1.5 shadow-xs font-mono">
-            <i data-lucide="download" class="w-3.5 h-3.5"></i>
-            <span>엑셀(.XLSX)</span>
-          </button>
-          <button onclick="exportPDF()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs">
-            <i data-lucide="file-text" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
-            <span>감사용 PDF</span>
-          </button>
-          <button onclick="exportPPT()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-yds-gold-100 hover:bg-[#FFE3B3] text-yds-gold-600 border border-yds-gold-500/40 flex items-center gap-1.5 font-mono shadow-xs">
-            <i data-lucide="presentation" class="w-3.5 h-3.5"></i>
-            <span>감사보고서 PPT</span>
-          </button>
-          <div class="h-4 w-px bg-yds-borderStrong mx-0.5"></div>
-          <button onclick="exportChurchExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="2026년 유년부 월별 회계장부 양식으로 자동 코드 매핑 출력">
-            <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
-            <span>교회 회계장부(.XLSX)</span>
-          </button>
-          <button onclick="exportChurchPPTX()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white border border-amber-700 flex items-center gap-1.5 font-mono shadow-xs" title="감사준비 출력용 A4 세로 2x2 4분할 증빙철">
-            <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-            <span>감사 4분할 PPTX</span>
-          </button>
-          <button onclick="clearAll()" class="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200" title="전체 삭제">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <select id="budgetYearSelect" onchange="loadBudgetSummary(this.value)" class="bg-white border border-yds-borderStrong rounded-lg px-3 py-1.5 text-xs text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs font-bold">
+            <option value="2026" selected>2026년도 예산</option>
+            <option value="2027">2027년도 예산</option>
+            <option value="2025">2025년도 예산</option>
+          </select>
+          <button onclick="saveAllBudgets()" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-yds-pineTeal-500 hover:bg-yds-pineTeal-600 text-white border border-yds-pineTeal-700 flex items-center gap-1.5 font-mono shadow-xs">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>예산 변경사항 저장</span>
           </button>
         </div>
       </div>
 
-      <!-- Monthly Tabs Navigation Bar -->
-      <div class="px-5 py-2.5 bg-yds-ivory/60 border-b border-yds-border flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 max-w-full" id="monthTabsContainer">
-          <!-- Rendered dynamically: [전체] [1월] [2월] ... [12월] -->
+      <!-- Budget KPI Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">연간 총 배정 예산</div>
+          <div id="budgetTotalAmountText" class="text-lg font-bold font-mono text-yds-ink-900">0 원</div>
+          <div class="text-[11px] text-yds-ink-400 mt-1">33개 회계과목 총합</div>
         </div>
-        <div id="monthStatsText" class="text-xs font-mono font-semibold text-yds-pineTeal-700 bg-white px-3 py-1 rounded-md border border-yds-borderStrong shadow-2xs whitespace-nowrap">
-          전체: 0건 | 0원
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">현재 총 실집행액</div>
+          <div id="budgetTotalSpentText" class="text-lg font-bold font-mono text-rose-600">0 원</div>
+          <div class="text-[11px] text-yds-ink-400 mt-1">영수증 지출 누계</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">잔여 예산액</div>
+          <div id="budgetTotalRemainingText" class="text-lg font-bold font-mono text-yds-pineTeal-700">0 원</div>
+          <div class="text-[11px] text-yds-ink-400 mt-1">예산 - 지출누계</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">전체 예산 소진율</div>
+          <div id="budgetOverallBurnRateText" class="text-lg font-bold font-mono text-amber-600">0.0%</div>
+          <div class="w-full bg-yds-ivory h-1.5 rounded-full overflow-hidden border border-yds-border mt-2">
+            <div id="budgetOverallProgressBar" class="bg-amber-500 h-full" style="width: 0%"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Table Body -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse font-sans">
-          <thead>
-            <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
-              <th class="py-2.5 px-3 w-10 text-center">NO</th>
-              <th class="py-2.5 px-3 w-28">DATE</th>
-              <th class="py-2.5 px-3 w-36">MERCHANT</th>
-              <th class="py-2.5 px-3">ITEMS</th>
-              <th class="py-2.5 px-2 w-14 text-center">QTY</th>
-              <th class="py-2.5 px-3 w-48">CODE (과목추천)</th>
-              <th class="py-2.5 px-2 w-20">METHOD</th>
-              <th class="py-2.5 px-3 w-24 text-right">SUPPLY</th>
-              <th class="py-2.5 px-3 w-20 text-right">TAX</th>
-              <th class="py-2.5 px-3 w-28 text-right">TOTAL</th>
-              <th class="py-2.5 px-2 w-20 text-center">PROOF</th>
-              <th class="py-2.5 px-2 w-10 text-center">DEL</th>
-            </tr>
-          </thead>
-          <tbody id="receiptTableBody" class="divide-y divide-yds-border text-yds-ink-800">
-            <tr>
-              <td colspan="12" class="py-12 text-center text-yds-ink-400 font-mono">
-                NO RECEIPTS INGESTED. DRAG & DROP EVIDENCE FILES ABOVE.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Budget Detail Grid -->
+      <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs">
+        <div class="px-5 py-3 border-b border-yds-border bg-yds-canvas flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+            <i data-lucide="layers" class="w-4 h-4 text-yds-pineTeal-500"></i>
+            DETAILED BUDGET ALLOCATION (과목별 예산 배정표)
+          </h3>
+          <span class="text-xs text-yds-ink-500 font-mono">예산액을 직접 수정한 후 상단의 [예산 변경사항 저장]을 누르세요.</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
+                <th class="py-2.5 px-3 w-16 text-center">CODE</th>
+                <th class="py-2.5 px-3 w-44">과목명</th>
+                <th class="py-2.5 px-3 w-28">분류</th>
+                <th class="py-2.5 px-3 w-32 text-right">배정 예산 (원)</th>
+                <th class="py-2.5 px-3 w-28 text-right">실집행액</th>
+                <th class="py-2.5 px-3 w-28 text-right">잔여액</th>
+                <th class="py-2.5 px-3 w-32">소진율 (%)</th>
+                <th class="py-2.5 px-3">비고 / 참고사항</th>
+              </tr>
+            </thead>
+            <tbody id="budgetTableBody" class="divide-y divide-yds-border text-yds-ink-800">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 4: NEXT YEAR BUDGET PLANNER                         -->
+    <!-- ======================================================== -->
+    <div id="viewPlanner" class="hidden space-y-6">
+      <!-- Planner Parameters Card -->
+      <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs hud-brackets">
+        <div class="flex items-center justify-between mb-3 border-b border-yds-border pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-yds-ink-900 font-mono">차년도 (2027년) 예산안 기획 및 시뮬레이션</h2>
+              <p class="text-xs text-yds-ink-500">당해년도 실제 집행 실적을 바탕으로 물가 상승률과 증감률을 반영하여 다음 해 예산안을 자동 생성합니다.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="applySimulatedPlanToNextYear()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="시뮬레이션된 예산안을 차년도 실제 예산으로 확정/적용">
+              <i data-lucide="check-check" class="w-4 h-4"></i>
+              <span>차년도 예산 확정 및 적용</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-6 text-xs font-mono pt-1">
+          <div class="flex items-center gap-2">
+            <span class="text-yds-ink-700 font-medium">기준 연도:</span>
+            <span class="px-2 py-1 rounded bg-yds-ivory font-bold text-yds-ink-900">2026년</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-yds-ink-400"></i>
+            <span class="text-yds-ink-700 font-medium">대상 연도:</span>
+            <span class="px-2 py-1 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200">2027년</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-yds-ink-700 font-medium">일괄 증감률:</span>
+            <div class="flex items-center gap-1">
+              <button onclick="setGrowthRate(0)" class="growth-btn px-2.5 py-1 rounded border bg-yds-pineTeal-600 text-white">0% (유지)</button>
+              <button onclick="setGrowthRate(3)" class="growth-btn px-2.5 py-1 rounded border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">+3%</button>
+              <button onclick="setGrowthRate(5)" class="growth-btn px-2.5 py-1 rounded border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">+5%</button>
+              <button onclick="setGrowthRate(10)" class="growth-btn px-2.5 py-1 rounded border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">+10%</button>
+            </div>
+            <input type="number" id="customGrowthInput" value="0" onchange="runSimulation(Number(this.value))" class="w-16 bg-white border border-yds-borderStrong rounded px-2 py-1 text-center font-bold text-yds-ink-900">
+            <span>%</span>
+          </div>
+
+          <button onclick="runSimulation()" class="px-3 py-1.5 rounded-lg bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-medium shadow-2xs">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+            <span>재계산</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Planner KPI Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">당해년도(2026) 총 예산</div>
+          <div id="planCurrentBudgetText" class="text-lg font-bold font-mono text-yds-ink-900">0 원</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">당해년도 총 실집행액</div>
+          <div id="planCurrentSpentText" class="text-lg font-bold font-mono text-yds-ink-700">0 원</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">차년도(2027) 제안 총 예산</div>
+          <div id="planSimulatedTotalText" class="text-lg font-bold font-mono text-amber-700">0 원</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">총 증감액 (차년도 - 올해)</div>
+          <div id="planDiffTotalText" class="text-lg font-bold font-mono text-emerald-700">0 원</div>
+        </div>
+      </div>
+
+      <!-- Planner Comparison Grid -->
+      <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs">
+        <div class="px-5 py-3 border-b border-yds-border bg-yds-canvas flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+            <i data-lucide="file-diff" class="w-4 h-4 text-amber-600"></i>
+            BUDGET PROPOSAL COMPARISON (실집행 기반 비교 및 제안표)
+          </h3>
+          <span class="text-xs text-yds-ink-500 font-mono">제안 예산액을 각 행에서 직접 미세조정할 수 있습니다.</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
+                <th class="py-2.5 px-3 w-16 text-center">CODE</th>
+                <th class="py-2.5 px-3 w-40">과목명</th>
+                <th class="py-2.5 px-3 w-28">분류</th>
+                <th class="py-2.5 px-3 w-28 text-right">올해 예산</th>
+                <th class="py-2.5 px-3 w-28 text-right">올해 실집행액</th>
+                <th class="py-2.5 px-3 w-32 text-right">차년도 제안 예산(원)</th>
+                <th class="py-2.5 px-3 w-24 text-right">증감액</th>
+                <th class="py-2.5 px-3 w-20 text-right">증감률</th>
+                <th class="py-2.5 px-3">산출 근거 / 비고</th>
+              </tr>
+            </thead>
+            <tbody id="plannerTableBody" class="divide-y divide-yds-border text-yds-ink-800">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
   </main>
+
+  <!-- ======================================================== -->
+  <!-- MODALS                                                   -->
+  <!-- ======================================================== -->
+
+  <!-- Income & In-Kind Add/Edit Modal -->
+  <div id="incomeModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white border border-yds-borderStrong rounded-xl max-w-lg w-full p-6 shadow-xl hud-brackets">
+      <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-3">
+        <h3 class="text-sm font-bold text-yds-ink-900 flex items-center gap-2 font-mono">
+          <i data-lucide="hand-coins" class="w-4 h-4 text-emerald-600"></i>
+          <span id="incomeModalTitle">수입 및 찬조/물품 등록</span>
+        </h3>
+        <button onclick="closeIncomeModal()" class="text-yds-ink-400 hover:text-yds-ink-900">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="incomeEditId" value="">
+
+      <div class="space-y-4 text-xs">
+        <!-- 구분 선택 -->
+        <div>
+          <label class="block text-yds-ink-700 mb-1.5 font-medium">수입 / 찬조 구분</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border border-yds-border cursor-pointer hover:bg-yds-ivory">
+              <input type="radio" name="incomeType" value="cash" checked onchange="handleIncomeTypeChange(false)">
+              <div>
+                <div class="font-bold text-yds-ink-900">금전 수입</div>
+                <div class="text-[11px] text-yds-ink-500">청구액, 성경학교등록비, 찬조금, 이자 등</div>
+              </div>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-lg border border-yds-border cursor-pointer hover:bg-yds-ivory">
+              <input type="radio" name="incomeType" value="kind" onchange="handleIncomeTypeChange(true)">
+              <div>
+                <div class="font-bold text-emerald-700">비금전 찬조 물품</div>
+                <div class="text-[11px] text-yds-ink-500">간식용 빵, 케이크, 도서, 선물세트 등</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-mono font-medium">일자 (DATE)</label>
+            <input type="date" id="incomeDate" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500">
+          </div>
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-medium">회계 과목코드</label>
+            <select id="incomeCodeSelect" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-2.5 py-2 text-yds-ink-900 focus:outline-none focus:border-yds-pineTeal-500 font-mono">
+              <!-- Rendered dynamically from ALL_INCOME_CODES -->
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-medium" id="lblIncomeDonator">입금처 / 기증자명</label>
+            <input type="text" id="incomeDonator" placeholder="예: 교회 본당, 김집사님, 부장집사" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 focus:outline-none focus:border-yds-pineTeal-500">
+          </div>
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-medium" id="lblIncomeItemName">품목명 / 적요</label>
+            <input type="text" id="incomeItemName" placeholder="예: 1차 예산 청구액, 주일 간식 빵" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 focus:outline-none focus:border-yds-pineTeal-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-medium">수량 (개)</label>
+            <input type="number" id="incomeQuantity" min="1" value="1" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500">
+          </div>
+          <div>
+            <label class="block text-yds-ink-700 mb-1 font-medium" id="lblIncomeAmount">금액 (원)</label>
+            <input type="number" id="incomeAmount" placeholder="0" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-yds-ink-700 mb-1 font-medium">용도 및 비고</label>
+          <input type="text" id="incomeMemo" placeholder="예: 분반공부 후 간식 배부, 성경학교 특별후원" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 focus:outline-none focus:border-yds-pineTeal-500">
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button onclick="closeIncomeModal()" class="px-4 py-2 rounded-lg bg-yds-ivory text-yds-ink-800 text-xs hover:bg-[#EAE4DC] font-mono border border-yds-border">취소</button>
+        <button onclick="saveIncomeRecord()" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 font-mono">저장하기</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Config Modal HUD -->
   <div id="configModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
@@ -296,32 +662,12 @@
         <div>
           <label class="block text-yds-ink-700 mb-1 font-mono font-medium">VISION_MODEL_ID</label>
           <input type="text" id="configModel" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500" value="gemma4:latest">
-          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">서버 내 설치된 파싱 모델 (gemma4:latest, gpt-oss:20b 등)</p>
+          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">서버 내 설치된 파싱 모델 (gemma4:latest 등)</p>
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-2">
         <button onclick="closeConfigModal()" class="px-4 py-2 rounded-lg bg-yds-ivory text-yds-ink-800 text-xs hover:bg-[#EAE4DC] font-mono border border-yds-border">CANCEL</button>
         <button onclick="saveConfig()" class="px-4 py-2 rounded-lg bg-yds-pineTeal-500 text-white text-xs font-semibold hover:bg-yds-pineTeal-600 font-mono">APPLY_LINK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mapping Modal HUD -->
-  <div id="mappingModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-white border border-yds-borderStrong rounded-xl max-w-lg w-full p-6 shadow-xl hud-brackets">
-      <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-3">
-        <h3 class="text-sm font-bold text-yds-ink-900 flex items-center gap-2 font-mono">
-          <i data-lucide="columns" class="w-4 h-4 text-yds-gold-500"></i>
-          EXCEL_HEADER_ROUTING_MAP
-        </h3>
-        <button onclick="closeMappingModal()" class="text-yds-ink-400 hover:text-yds-ink-900">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-      <p class="text-xs text-yds-ink-500 mb-3 font-sans">로드된 엑셀 템플릿의 각 열에 대응할 영수증 데이터 필드를 지정합니다.</p>
-      <div id="mappingList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
-      <div class="mt-6 flex justify-end gap-2">
-        <button onclick="closeMappingModal()" class="px-4 py-2 rounded-lg bg-yds-pineTeal-500 text-white text-xs font-semibold hover:bg-yds-pineTeal-600 font-mono">SAVE_ROUTING</button>
       </div>
     </div>
   </div>
@@ -333,42 +679,77 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT APP LOGIC                                     -->
+  <!-- ======================================================== -->
   <script>
     // State
+    let currentView = 'expenses';
     let records = [];
     let churchCodes = [];
+    let incomeCodes = [];
     let currentMonthFilter = 'ALL';
-    let currentTemplate = null;
-    let columnMappings = {};
 
-    const RECEIPT_FIELDS = [
-      { key: '', label: '(미할당)' },
-      { key: 'date', label: '거래일자 (YYYY-MM-DD)' },
-      { key: 'merchant', label: '거래처/상호명' },
-      { key: 'items', label: '구입품목/적요' },
-      { key: 'quantity', label: '수량' },
-      { key: 'code', label: '계정코드' },
-      { key: 'paymentMethod', label: '결제수단 (카드/현금)' },
-      { key: 'supplyAmount', label: '공급가액' },
-      { key: 'tax', label: '부가세' },
-      { key: 'amount', label: '합계금액' },
-      { key: 'memo', label: '비고/메모' }
-    ];
+    let incomeRecords = [];
+    let currentIncomeFilter = 'ALL';
+
+    let currentBudgetSummary = null;
+    let currentSimulation = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       checkOllamaStatus();
       initDragDrop();
       await loadChurchCodes();
+      await loadIncomeCodes();
       await loadReceiptsFromDB();
     });
 
+    // ----------------------------------------------------
+    // View Switching
+    // ----------------------------------------------------
+    function switchView(viewName) {
+      currentView = viewName;
+      ['expenses', 'income', 'budget', 'planner'].forEach(v => {
+        const el = document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`);
+        const tab = document.getElementById(`navTab${v.charAt(0).toUpperCase() + v.slice(1)}`);
+        if (v === viewName) {
+          el.classList.remove('hidden');
+          tab.className = 'nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-pineTeal-500 text-white shadow-xs';
+        } else {
+          el.classList.add('hidden');
+          tab.className = 'nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-700 border border-yds-border transition-colors';
+        }
+      });
+
+      if (viewName === 'income') loadIncomeData();
+      if (viewName === 'budget') loadBudgetSummary(document.getElementById('budgetYearSelect').value);
+      if (viewName === 'planner') runSimulation();
+      lucide.createIcons();
+    }
+
+    // ----------------------------------------------------
+    // Master Codes & Receipts Loader
+    // ----------------------------------------------------
     async function loadChurchCodes() {
       try {
         const res = await fetch('/api/church/codes');
         churchCodes = await res.json();
       } catch (e) {
         console.error('교회 코드 로드 실패', e);
+      }
+    }
+
+    async function loadIncomeCodes() {
+      try {
+        const res = await fetch('/api/church/income-codes');
+        incomeCodes = await res.json();
+        const sel = document.getElementById('incomeCodeSelect');
+        sel.innerHTML = incomeCodes.map(c => `
+          <option value="${c.code}">[${c.code}] ${c.label}</option>
+        `).join('');
+      } catch (e) {
+        console.error('수입 코드 로드 실패', e);
       }
     }
 
@@ -402,6 +783,9 @@
       }
     }
 
+    // ----------------------------------------------------
+    // Drag & Drop / Clipboard Paste
+    // ----------------------------------------------------
     function initDragDrop() {
       const zone = document.getElementById('dropZone');
       const input = document.getElementById('receiptFileInput');
@@ -428,10 +812,9 @@
         if (files.length) handleFiles(files);
       });
 
-      document.getElementById('templateFileInput').addEventListener('change', handleTemplateUpload);
       document.getElementById('rowImageFileInput').addEventListener('change', handleRowImageUpload);
 
-      // Clipboard Paste Listener (화면 어디서든 영수증 스크린샷 Ctrl+V 붙여넣기 지원)
+      // Clipboard Paste Listener (Ctrl+V)
       window.addEventListener('paste', async (e) => {
         const items = e.clipboardData ? e.clipboardData.items : [];
         const imageFiles = [];
@@ -491,52 +874,9 @@
       renderTable();
     }
 
-    async function handleTemplateUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append('template', file);
-
-      try {
-        const res = await fetch('/api/template/analyze', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          currentTemplate = data;
-          document.getElementById('templateStatusBadge').innerText = file.name;
-          document.getElementById('templateStatusBadge').className = 'text-[11px] px-2 py-0.5 rounded bg-yds-pineTeal-50 text-yds-pineTeal-700 border border-yds-pineTeal-200 font-mono font-medium';
-          document.getElementById('templateBtnLabel').innerText = `템플릿 교체 (${file.name})`;
-          document.getElementById('mappingButtonContainer').classList.remove('hidden');
-
-          columnMappings = {};
-          data.headers.forEach(h => {
-            const title = h.title.toLowerCase();
-            if (title.includes('일자') || title.includes('날짜') || title.includes('date')) {
-              columnMappings[h.colIndex] = 'date';
-            } else if (title.includes('상호') || title.includes('거래처') || title.includes('가맹점') || title.includes('업체')) {
-              columnMappings[h.colIndex] = 'merchant';
-            } else if (title.includes('품목') || title.includes('내역') || title.includes('적요') || title.includes('항목')) {
-              columnMappings[h.colIndex] = 'items';
-            } else if (title.includes('결제') || title.includes('수단') || title.includes('구분')) {
-              columnMappings[h.colIndex] = 'paymentMethod';
-            } else if (title.includes('공급가')) {
-              columnMappings[h.colIndex] = 'supplyAmount';
-            } else if (title.includes('부가세') || title.includes('세액') || title.includes('vat')) {
-              columnMappings[h.colIndex] = 'tax';
-            } else if (title.includes('합계') || title.includes('금액') || title.includes('총액') || title.includes('amount')) {
-              columnMappings[h.colIndex] = 'amount';
-            } else if (title.includes('비고') || title.includes('메모') || title.includes('참고')) {
-              columnMappings[h.colIndex] = 'memo';
-            }
-          });
-
-          openMappingModal();
-        }
-      } catch (err) {
-        alert('템플릿 분석 실패: ' + err.message);
-      }
-    }
-
+    // ----------------------------------------------------
+    // Monthly Tabs & Expenses Grid
+    // ----------------------------------------------------
     function renderMonthTabs() {
       const container = document.getElementById('monthTabsContainer');
       const stats = document.getElementById('monthStatsText');
@@ -874,6 +1214,483 @@
       }
     }
 
+    // ----------------------------------------------------
+    // VIEW 2: Income & Sponsorship Logic
+    // ----------------------------------------------------
+    async function loadIncomeData() {
+      try {
+        const res = await fetch('/api/income');
+        const data = await res.json();
+        incomeRecords = data.records || [];
+
+        document.getElementById('incomeTotalCashText').innerText = `${data.cashTotal.toLocaleString()} 원`;
+        document.getElementById('incomeInKindCountText').innerText = `${incomeRecords.filter(r => r.isInKind).length} 건 / ${data.inKindCount} 개`;
+        document.getElementById('incomeInKindValueText').innerText = `${data.inKindEstimatedTotal.toLocaleString()} 원`;
+
+        renderIncomeTable();
+      } catch (e) {
+        console.error('수입 데이터 로드 실패', e);
+      }
+    }
+
+    function setIncomeFilter(type) {
+      currentIncomeFilter = type;
+      ['All', 'Cash', 'Kind'].forEach(t => {
+        const btn = document.getElementById(`incFilter${t}`);
+        if (t.toUpperCase() === type) {
+          btn.className = 'px-3 py-1.5 text-xs font-mono rounded-lg border bg-yds-pineTeal-600 text-white font-medium';
+        } else {
+          btn.className = 'px-3 py-1.5 text-xs font-mono rounded-lg border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border';
+        }
+      });
+      renderIncomeTable();
+    }
+
+    function renderIncomeTable() {
+      const tbody = document.getElementById('incomeTableBody');
+      const badge = document.getElementById('incomeTableCountBadge');
+
+      let filtered = incomeRecords;
+      if (currentIncomeFilter === 'CASH') filtered = incomeRecords.filter(r => !r.isInKind);
+      if (currentIncomeFilter === 'KIND') filtered = incomeRecords.filter(r => r.isInKind);
+
+      badge.innerText = `총 ${filtered.length}건`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-yds-ink-400 font-mono">해당 조건의 수입 및 찬조 내역이 없습니다. [+ 수입/찬조 등록]을 클릭하세요.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((r, i) => {
+        const isKind = r.isInKind;
+        const typeBadge = isKind 
+          ? `<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">찬조물품</span>`
+          : `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">금전수입</span>`;
+
+        return `
+          <tr class="hover:bg-yds-canvas transition-colors">
+            <td class="py-2.5 px-3 text-center font-mono text-yds-ink-400 font-medium">${String(i + 1).padStart(2, '0')}</td>
+            <td class="py-2.5 px-3 font-mono text-yds-ink-900">${r.date || ''}</td>
+            <td class="py-2.5 px-2.5 text-center">${typeBadge}</td>
+            <td class="py-2.5 px-3 font-mono font-medium text-yds-ink-800">[${r.code}] ${r.codeLabel || ''}</td>
+            <td class="py-2.5 px-3 font-semibold text-yds-ink-900">${r.donator || '-'}</td>
+            <td class="py-2.5 px-3 font-medium text-yds-ink-900">${r.itemName || ''}</td>
+            <td class="py-2.5 px-2 text-center font-mono font-semibold">${r.quantity || 1}개</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold ${isKind ? 'text-amber-700' : 'text-emerald-700'}">${Number(r.amount || 0).toLocaleString()}원</td>
+            <td class="py-2.5 px-3 text-yds-ink-600">${r.memo || '-'}</td>
+            <td class="py-2.5 px-2 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="editIncomeRecord('${r.id}')" class="p-1 rounded text-yds-ink-500 hover:text-yds-pineTeal-600 hover:bg-yds-ivory" title="수정"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                <button onclick="deleteIncomeRecord('${r.id}')" class="p-1 rounded text-yds-ink-500 hover:text-rose-600 hover:bg-rose-50" title="삭제"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function openIncomeModal(editRecord = null) {
+      const modal = document.getElementById('incomeModal');
+      const title = document.getElementById('incomeModalTitle');
+      const editId = document.getElementById('incomeEditId');
+
+      if (editRecord) {
+        title.innerText = '수입 및 찬조/물품 내역 수정';
+        editId.value = editRecord.id;
+        document.getElementById('incomeDate').value = editRecord.date;
+        document.getElementById('incomeCodeSelect').value = editRecord.code;
+        document.getElementById('incomeDonator').value = editRecord.donator;
+        document.getElementById('incomeItemName').value = editRecord.itemName;
+        document.getElementById('incomeQuantity').value = editRecord.quantity;
+        document.getElementById('incomeAmount').value = editRecord.amount;
+        document.getElementById('incomeMemo').value = editRecord.memo;
+
+        const isKind = editRecord.isInKind;
+        document.querySelector(`input[name="incomeType"][value="${isKind ? 'kind' : 'cash'}"]`).checked = true;
+        handleIncomeTypeChange(isKind);
+      } else {
+        title.innerText = '수입 및 찬조/물품 신규 등록';
+        editId.value = '';
+        document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('incomeCodeSelect').value = 'A01';
+        document.getElementById('incomeDonator').value = '';
+        document.getElementById('incomeItemName').value = '';
+        document.getElementById('incomeQuantity').value = 1;
+        document.getElementById('incomeAmount').value = '';
+        document.getElementById('incomeMemo').value = '';
+
+        document.querySelector('input[name="incomeType"][value="cash"]').checked = true;
+        handleIncomeTypeChange(false);
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeIncomeModal() {
+      document.getElementById('incomeModal').classList.add('hidden');
+    }
+
+    function handleIncomeTypeChange(isInKind) {
+      const codeSelect = document.getElementById('incomeCodeSelect');
+      const lblDonator = document.getElementById('lblIncomeDonator');
+      const lblItemName = document.getElementById('lblIncomeItemName');
+      const lblAmount = document.getElementById('lblIncomeAmount');
+
+      if (isInKind) {
+        lblDonator.innerText = '기증자 성도/교사명';
+        lblItemName.innerText = '기증 물품명';
+        lblAmount.innerText = '환산 추정가 (원, 없으면 0)';
+        codeSelect.value = 'A07'; // 물품후원
+      } else {
+        lblDonator.innerText = '입금처 / 찬조자';
+        lblItemName.innerText = '품목명 / 수입 적요';
+        lblAmount.innerText = '수입 금액 (원)';
+        if (codeSelect.value === 'A07') codeSelect.value = 'A01';
+      }
+    }
+
+    async function saveIncomeRecord() {
+      const id = document.getElementById('incomeEditId').value;
+      const isInKind = document.querySelector('input[name="incomeType"]:checked').value === 'kind';
+      const code = document.getElementById('incomeCodeSelect').value;
+      const foundCode = incomeCodes.find(c => c.code === code);
+
+      const payload = {
+        date: document.getElementById('incomeDate').value,
+        code,
+        codeLabel: foundCode ? foundCode.label : '',
+        donator: document.getElementById('incomeDonator').value.trim(),
+        itemName: document.getElementById('incomeItemName').value.trim(),
+        quantity: Number(document.getElementById('incomeQuantity').value) || 1,
+        amount: Number(document.getElementById('incomeAmount').value) || 0,
+        isInKind,
+        memo: document.getElementById('incomeMemo').value.trim()
+      };
+
+      if (!payload.itemName) {
+        return alert('품목명 또는 적요를 입력해주세요.');
+      }
+
+      try {
+        if (id) {
+          await fetch(`/api/income/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch('/api/income', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+        closeIncomeModal();
+        await loadIncomeData();
+      } catch (e) {
+        alert('수입/찬조 저장 실패: ' + e.message);
+      }
+    }
+
+    function editIncomeRecord(id) {
+      const r = incomeRecords.find(x => x.id === id);
+      if (r) openIncomeModal(r);
+    }
+
+    async function deleteIncomeRecord(id) {
+      if (!confirm('이 수입/찬조 내역을 삭제하시겠습니까?')) return;
+      try {
+        await fetch(`/api/income/${id}`, { method: 'DELETE' });
+        await loadIncomeData();
+      } catch (e) {
+        alert('삭제 실패: ' + e.message);
+      }
+    }
+
+    // ----------------------------------------------------
+    // VIEW 3: Annual Budget Management Logic
+    // ----------------------------------------------------
+    async function loadBudgetSummary(year) {
+      try {
+        const res = await fetch(`/api/budget/${year}`);
+        const data = await res.json();
+        currentBudgetSummary = data;
+
+        document.getElementById('budgetTotalAmountText').innerText = `${data.totalBudget.toLocaleString()} 원`;
+        document.getElementById('budgetTotalSpentText').innerText = `${data.totalSpent.toLocaleString()} 원`;
+        document.getElementById('budgetTotalRemainingText').innerText = `${data.totalRemaining.toLocaleString()} 원`;
+        document.getElementById('budgetOverallBurnRateText').innerText = `${data.overallBurnRate}%`;
+        document.getElementById('budgetOverallProgressBar').style.width = `${Math.min(data.overallBurnRate, 100)}%`;
+
+        renderBudgetTable(data.items);
+      } catch (e) {
+        console.error('예산 데이터 로드 실패', e);
+      }
+    }
+
+    function renderBudgetTable(items) {
+      const tbody = document.getElementById('budgetTableBody');
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-yds-ink-400 font-mono">예산 항목이 없습니다.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const burn = item.burnRate;
+        let burnBadgeClass = 'text-yds-pineTeal-700 bg-yds-pineTeal-50';
+        let barColor = 'bg-yds-pineTeal-500';
+        if (burn > 80 && burn <= 100) {
+          burnBadgeClass = 'text-amber-700 bg-amber-50';
+          barColor = 'bg-amber-500';
+        } else if (burn > 100) {
+          burnBadgeClass = 'text-rose-700 bg-rose-50 font-bold';
+          barColor = 'bg-rose-600';
+        }
+
+        return `
+          <tr class="hover:bg-yds-canvas transition-colors">
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-yds-pineTeal-700">${item.code}</td>
+            <td class="py-2.5 px-3 font-semibold text-yds-ink-900">${item.codeLabel}</td>
+            <td class="py-2.5 px-3 text-yds-ink-500 font-mono">${item.category}</td>
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" id="budget_amt_${item.code}" value="${item.budgetAmount}" onchange="handleBudgetAmountInput('${item.code}', this.value)" class="bg-white border border-yds-borderStrong rounded px-2.5 py-1 text-right font-mono font-bold text-yds-ink-900 text-xs w-full focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono text-yds-ink-700">${item.actualSpent.toLocaleString()}원</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold ${item.remaining >= 0 ? 'text-yds-pineTeal-700' : 'text-rose-600'}">${item.remaining.toLocaleString()}원</td>
+            <td class="py-2.5 px-3">
+              <div class="flex items-center gap-2">
+                <div class="w-16 bg-yds-ivory h-1.5 rounded-full overflow-hidden border border-yds-border flex-1">
+                  <div class="${barColor} h-full" style="width: ${Math.min(burn, 100)}%"></div>
+                </div>
+                <span class="text-[11px] font-mono px-1.5 py-0.5 rounded ${burnBadgeClass} whitespace-nowrap">${burn}%</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-3">
+              <input type="text" id="budget_memo_${item.code}" value="${item.memo || ''}" onchange="handleBudgetMemoInput('${item.code}', this.value)" placeholder="비고 입력" class="bg-white border border-yds-border rounded px-2 py-1 text-xs text-yds-ink-700 w-full focus:outline-none focus:border-yds-pineTeal-500">
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function handleBudgetAmountInput(code, val) {
+      if (!currentBudgetSummary) return;
+      const target = currentBudgetSummary.items.find(i => i.code === code);
+      if (target) {
+        target.budgetAmount = Number(val) || 0;
+        target.remaining = target.budgetAmount - target.actualSpent;
+        target.burnRate = target.budgetAmount > 0 ? Math.round((target.actualSpent / target.budgetAmount) * 1000) / 10 : 0;
+        
+        let total = 0;
+        currentBudgetSummary.items.forEach(i => total += i.budgetAmount);
+        currentBudgetSummary.totalBudget = total;
+        currentBudgetSummary.totalRemaining = total - currentBudgetSummary.totalSpent;
+        currentBudgetSummary.overallBurnRate = total > 0 ? Math.round((currentBudgetSummary.totalSpent / total) * 1000) / 10 : 0;
+
+        document.getElementById('budgetTotalAmountText').innerText = `${total.toLocaleString()} 원`;
+        document.getElementById('budgetTotalRemainingText').innerText = `${currentBudgetSummary.totalRemaining.toLocaleString()} 원`;
+        document.getElementById('budgetOverallBurnRateText').innerText = `${currentBudgetSummary.overallBurnRate}%`;
+      }
+    }
+
+    function handleBudgetMemoInput(code, val) {
+      if (!currentBudgetSummary) return;
+      const target = currentBudgetSummary.items.find(i => i.code === code);
+      if (target) target.memo = val;
+    }
+
+    async function saveAllBudgets() {
+      if (!currentBudgetSummary) return;
+      const year = currentBudgetSummary.year;
+      const payload = currentBudgetSummary.items.map(item => ({
+        code: item.code,
+        codeLabel: item.codeLabel,
+        category: item.category,
+        amount: item.budgetAmount,
+        memo: item.memo || ''
+      }));
+
+      try {
+        await fetch(`/api/budget/${year}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: payload })
+        });
+        alert(`${year}년도 예산 설정이 안전하게 저장되었습니다.`);
+        await loadBudgetSummary(year);
+      } catch (e) {
+        alert('예산 저장 실패: ' + e.message);
+      }
+    }
+
+    // ----------------------------------------------------
+    // VIEW 4: Next Year Planner Logic
+    // ----------------------------------------------------
+    let currentGrowthRate = 0;
+    function setGrowthRate(rate) {
+      currentGrowthRate = rate;
+      document.getElementById('customGrowthInput').value = rate;
+      runSimulation(rate);
+    }
+
+    async function runSimulation(growthRate = null) {
+      const rate = (growthRate !== null) ? growthRate : Number(document.getElementById('customGrowthInput').value) || 0;
+      currentGrowthRate = rate;
+
+      try {
+        const res = await fetch(`/api/budget/simulate/2026?growthRate=${rate}`);
+        const data = await res.json();
+        currentSimulation = data;
+
+        document.getElementById('planCurrentBudgetText').innerText = `${data.currentTotalBudget.toLocaleString()} 원`;
+        document.getElementById('planCurrentSpentText').innerText = `${data.currentTotalSpent.toLocaleString()} 원`;
+        document.getElementById('planSimulatedTotalText').innerText = `${data.simulatedTotal.toLocaleString()} 원`;
+        
+        const diffSign = data.diffTotal >= 0 ? `+${data.diffTotal.toLocaleString()}` : data.diffTotal.toLocaleString();
+        document.getElementById('planDiffTotalText').innerText = `${diffSign} 원`;
+
+        renderPlannerTable(data.items);
+      } catch (e) {
+        console.error('시뮬레이션 로드 실패', e);
+      }
+    }
+
+    function renderPlannerTable(items) {
+      const tbody = document.getElementById('plannerTableBody');
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-yds-ink-400 font-mono">기획 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const diffSign = item.diff >= 0 ? `+${item.diff.toLocaleString()}` : item.diff.toLocaleString();
+        const pctClass = item.pctChange > 0 ? 'text-amber-700' : (item.pctChange < 0 ? 'text-rose-600' : 'text-yds-ink-600');
+
+        return `
+          <tr class="hover:bg-yds-canvas transition-colors">
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-700">${item.code}</td>
+            <td class="py-2.5 px-3 font-semibold text-yds-ink-900">${item.codeLabel}</td>
+            <td class="py-2.5 px-3 text-yds-ink-500 font-mono">${item.category}</td>
+            <td class="py-2.5 px-3 text-right font-mono text-yds-ink-600">${item.currentBudget.toLocaleString()}원</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-yds-ink-800">${item.actualSpent.toLocaleString()}원</td>
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" value="${item.proposedAmount}" onchange="handlePlanAmountChange('${item.code}', this.value)" class="bg-white border border-yds-borderStrong rounded px-2.5 py-1 text-right font-mono font-bold text-amber-800 text-xs w-full focus:outline-none focus:border-amber-600 shadow-2xs">
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-semibold ${item.diff >= 0 ? 'text-emerald-700' : 'text-rose-600'}">${diffSign}원</td>
+            <td class="py-2.5 px-3 text-right font-mono ${pctClass}">${item.pctChange > 0 ? '+' : ''}${item.pctChange}%</td>
+            <td class="py-2.5 px-3">
+              <input type="text" value="${item.memo || ''}" onchange="handlePlanMemoChange('${item.code}', this.value)" class="bg-white border border-yds-border rounded px-2 py-1 text-xs text-yds-ink-700 w-full focus:outline-none focus:border-amber-600">
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function handlePlanAmountChange(code, val) {
+      if (!currentSimulation) return;
+      const target = currentSimulation.items.find(i => i.code === code);
+      if (target) {
+        target.proposedAmount = Number(val) || 0;
+        target.diff = target.proposedAmount - target.currentBudget;
+        target.pctChange = target.currentBudget > 0 ? Math.round((target.diff / target.currentBudget) * 1000) / 10 : 0;
+        target.memo = '수기 조정';
+
+        let simTotal = 0;
+        currentSimulation.items.forEach(i => simTotal += i.proposedAmount);
+        currentSimulation.simulatedTotal = simTotal;
+        currentSimulation.diffTotal = simTotal - currentSimulation.currentTotalBudget;
+
+        document.getElementById('planSimulatedTotalText').innerText = `${simTotal.toLocaleString()} 원`;
+        const diffSign = currentSimulation.diffTotal >= 0 ? `+${currentSimulation.diffTotal.toLocaleString()}` : currentSimulation.diffTotal.toLocaleString();
+        document.getElementById('planDiffTotalText').innerText = `${diffSign} 원`;
+      }
+    }
+
+    function handlePlanMemoChange(code, val) {
+      if (!currentSimulation) return;
+      const target = currentSimulation.items.find(i => i.code === code);
+      if (target) target.memo = val;
+    }
+
+    async function applySimulatedPlanToNextYear() {
+      if (!currentSimulation) return;
+      const nextY = currentSimulation.nextYear;
+      if (!confirm(`시뮬레이션된 총 ${currentSimulation.simulatedTotal.toLocaleString()}원의 예산안을 ${nextY}년도 정식 예산으로 확정하여 적용하시겠습니까?`)) return;
+
+      const payload = currentSimulation.items.map(i => ({
+        code: i.code,
+        codeLabel: i.codeLabel,
+        category: i.category,
+        amount: i.proposedAmount,
+        memo: i.memo || ''
+      }));
+
+      try {
+        await fetch('/api/budget/apply-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ year: nextY, items: payload })
+        });
+        alert(`${nextY}년도 예산안이 정식 예산 데이터로 안전하게 확정 등록되었습니다!`);
+        document.getElementById('budgetYearSelect').value = String(nextY);
+        switchView('budget');
+      } catch (e) {
+        alert('차년도 예산 적용 실패: ' + e.message);
+      }
+    }
+
+    // ----------------------------------------------------
+    // Cross-PC Backup & Restore (JSON)
+    // ----------------------------------------------------
+    async function downloadBackup() {
+      try {
+        window.location.href = '/api/backup';
+      } catch (e) {
+        alert('백업 다운로드 실패: ' + e.message);
+      }
+    }
+
+    async function handleRestoreUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!confirm(`'${file.name}' 백업 파일로부터 데이터를 복원하시겠습니까? 기존 데이터는 백업 파일의 내용으로 완전히 동기화됩니다.`)) {
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const backupData = JSON.parse(text);
+
+        const res = await fetch('/api/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(backupData)
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          alert(`데이터 복원 완료!\n- 영수증: ${resData.restoredReceipts}건\n- 예산항목: ${resData.restoredBudget}개\n- 수입/찬조: ${resData.restoredIncome}건`);
+          await loadReceiptsFromDB();
+          if (currentView === 'income') await loadIncomeData();
+          if (currentView === 'budget') await loadBudgetSummary(document.getElementById('budgetYearSelect').value);
+          if (currentView === 'planner') await runSimulation();
+        } else {
+          alert('복원 실패: ' + resData.error);
+        }
+      } catch (err) {
+        alert('복원 처리 실패: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    }
+
+    // ----------------------------------------------------
+    // App Controls & Exporters
+    // ----------------------------------------------------
     async function shutdownApp() {
       if (!confirm('Receipt Ledger 프로그램과 백그라운드 서버를 완전히 종료하시겠습니까?')) return;
       try {
@@ -905,92 +1722,20 @@
       checkOllamaStatus();
     }
 
-    function openMappingModal() {
-      if (!currentTemplate) return;
-      const list = document.getElementById('mappingList');
-      list.innerHTML = currentTemplate.headers.map(h => {
-        const currentMapped = columnMappings[h.colIndex] || '';
-        return `
-          <div class="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-yds-canvas border border-yds-border font-mono">
-            <span class="text-yds-ink-800 font-medium text-xs">[${h.colLetter}] ${h.title}</span>
-            <select onchange="columnMappings[${h.colIndex}] = this.value" class="bg-white border border-yds-borderStrong text-xs rounded px-2.5 py-1 text-yds-ink-900 focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
-              ${RECEIPT_FIELDS.map(f => `<option value="${f.key}" ${f.key === currentMapped ? 'selected' : ''}>${f.label}</option>`).join('')}
-            </select>
-          </div>
-        `;
-      }).join('');
-      document.getElementById('mappingModal').classList.remove('hidden');
-    }
-    function closeMappingModal() { document.getElementById('mappingModal').classList.add('hidden'); }
-
     function viewImage(path) {
       document.getElementById('previewImageSrc').src = path;
       document.getElementById('imageModal').classList.remove('hidden');
     }
     function closeImageModal() { document.getElementById('imageModal').classList.add('hidden'); }
 
-    async function exportExcel() {
-      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
-
-      const payload = {
-        templateId: currentTemplate ? currentTemplate.templateId : null,
-        mappings: columnMappings,
-        records
-      };
-
-      const res = await fetch('/api/export/excel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `회계장부_${new Date().toISOString().split('T')[0]}.xlsx`;
-      a.click();
-    }
-
-    async function exportPDF() {
-      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
-
-      const res = await fetch('/api/export/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records })
-      });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `증빙철_${new Date().toISOString().split('T')[0]}.pdf`;
-      a.click();
-    }
-
-    async function exportPPT() {
-      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
-
-      const res = await fetch('/api/export/ppt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records })
-      });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `감사증빙보고서_${new Date().toISOString().split('T')[0]}.pptx`;
-      a.click();
-    }
-
     async function exportChurchExcel() {
-      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
+      if (records.length === 0 && incomeRecords.length === 0) return alert('내보낼 회계 내역이 없습니다.');
 
       try {
         const res = await fetch('/api/export/church-excel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ records })
+          body: JSON.stringify({ records, incomeRecords })
         });
         if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
         const blob = await res.blob();
@@ -1023,6 +1768,22 @@
       } catch (err) {
         alert('감사 4분할 PPTX 다운로드 실패: ' + err.message);
       }
+    }
+
+    async function exportPDF() {
+      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
+
+      const res = await fetch('/api/export/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records })
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `증빙철_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
     }
   </script>
 </body>

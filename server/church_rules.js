@@ -35,6 +35,19 @@ const ALL_CHURCH_CODES = [
   { code: 'Z01', category: '예비비', label: '기타/예비비', detail: '병문안, 축의금, 기타경비' }
 ];
 
+// 교회 수입 과목 마스터 (A01 ~ A99)
+const ALL_INCOME_CODES = [
+  { code: 'A01', category: '정기수입', label: '청구액(부서예산 청구)', detail: '교회 본당 청구 입금액' },
+  { code: 'A02', category: '정기수입', label: '전년이월', detail: '전년도 잔액 이월금' },
+  { code: 'A03', category: '행사수입', label: '성경책판매', detail: '성경책/찬송가 판매수입' },
+  { code: 'A04', category: '행사수입', label: '성경학교등록비', detail: '여름/겨울 성경학교 참가등록비' },
+  { code: 'A05', category: '행사수입', label: '노회대회', detail: '노회 어린이대회 참가비/지원금' },
+  { code: 'A06', category: '이자수입', label: '은행이자', detail: '유년부 통장 결산 이자' },
+  { code: 'A07', category: '특별찬조', label: '찬조(물품후원)', detail: '간식, 선물, 도서 등 비금전 물품 기증' },
+  { code: 'A08', category: '특별찬조', label: '찬조(회식/스승의날)', detail: '교사회식, 스승의날 찬조금' },
+  { code: 'A99', category: '기타수입', label: '기타수입', detail: '기타 찬조 및 잡수입' }
+];
+
 // 정규식 기반 우선순위 매칭 룰
 const INFERENCE_RULES = [
   { code: 'H04', match: /간식|과자|빵|음료|우유|주스|커피|베이커리|떡|피자|치킨|아이스크림|파리바게|뚜레쥬르|메가커피|컴포즈|이디야|스타벅스|맥도날드|롯데리아|버거킹|쿠키|사탕|젤리|포카칩|고래밥|죠리퐁|초코송이|뭉쉘/i },
@@ -92,5 +105,6 @@ function inferChurchCode(merchant, items, memo) {
 
 module.exports = {
   ALL_CHURCH_CODES,
+  ALL_INCOME_CODES,
   inferChurchCode
 };

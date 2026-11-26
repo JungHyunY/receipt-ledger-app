@@ -7,14 +7,26 @@ const axios = require('axios');
 const ExcelJS = require('exceljs');
 const { PDFDocument, rgb } = require('pdf-lib');
 const { generateChurchLedgerExcel, generateChurchAuditPptx } = require('./church_exporter');
-const { ALL_CHURCH_CODES, inferChurchCode } = require('./church_rules');
+const { ALL_CHURCH_CODES, ALL_INCOME_CODES, inferChurchCode } = require('./church_rules');
 const {
   getAllReceipts,
   getReceiptById,
   insertReceipt,
   updateReceipt,
   deleteReceipt,
-  clearAllReceipts
+  clearAllReceipts,
+  getBudgetItems,
+  saveBudgetItems,
+  getBudgetSummary,
+  simulateNextYearBudget,
+  getAllIncome,
+  getIncomeById,
+  insertIncome,
+  updateIncome,
+  deleteIncome,
+  getIncomeSummary,
+  exportDatabaseBackup,
+  restoreDatabaseBackup
 } = require('./db');
 
 const app = express();
@@ -240,10 +252,132 @@ app.get('/api/church/codes', (req, res) => {
   res.json(ALL_CHURCH_CODES);
 });
 
+app.get('/api/church/income-codes', (req, res) => {
+  res.json(ALL_INCOME_CODES);
+});
+
 app.post('/api/church/recommend-code', (req, res) => {
   const { merchant, items, memo } = req.body;
   const result = inferChurchCode(merchant, items, memo);
   res.json(result);
+});
+
+// 2-3. Annual Budget Management Endpoints
+app.get('/api/budget/:year', (req, res) => {
+  try {
+    const summary = getBudgetSummary(req.params.year);
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/budget/:year', (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'items 배열이 필요합니다.' });
+    }
+    const saved = saveBudgetItems(req.params.year, items);
+    res.json({ success: true, items: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/budget/simulate/:year', (req, res) => {
+  try {
+    const growthRate = parseFloat(req.query.growthRate) || 0;
+    const simulation = simulateNextYearBudget(req.params.year, growthRate);
+    res.json(simulation);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/budget/apply-plan', (req, res) => {
+  try {
+    const { year, items } = req.body;
+    if (!year || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'year와 items 배열이 필요합니다.' });
+    }
+    const saved = saveBudgetItems(year, items);
+    res.json({ success: true, year, items: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2-4. Income & Sponsorship/Donation Management Endpoints
+app.get('/api/income', (req, res) => {
+  try {
+    const summary = getIncomeSummary(req.query.year);
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/income', (req, res) => {
+  try {
+    const newId = `inc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const created = insertIncome({
+      id: newId,
+      date: req.body.date || new Date().toISOString().split('T')[0],
+      code: req.body.code || 'A01',
+      codeLabel: req.body.codeLabel || '',
+      donator: req.body.donator || '',
+      itemName: req.body.itemName || '',
+      quantity: Number(req.body.quantity) || 1,
+      amount: Number(req.body.amount) || 0,
+      isInKind: req.body.isInKind === true || req.body.isInKind === 1 || req.body.isInKind === 'true',
+      memo: req.body.memo || ''
+    });
+    res.json({ success: true, record: created });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/income/:id', (req, res) => {
+  try {
+    const updated = updateIncome(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: '수입/찬조 내역을 찾을 수 없습니다.' });
+    res.json({ success: true, record: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/income/:id', (req, res) => {
+  try {
+    deleteIncome(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2-5. Cross-PC Full Database Backup & Restore Endpoints (JSON)
+app.get('/api/backup', (req, res) => {
+  try {
+    const backup = exportDatabaseBackup();
+    const filename = `receipt-ledger-backup-${new Date().toISOString().split('T')[0]}.json`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(backup, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/restore', (req, res) => {
+  try {
+    const result = restoreDatabaseBackup(req.body);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 3. Excel Template Analysis Endpoint
@@ -587,8 +721,10 @@ app.post('/api/export/ppt', async (req, res) => {
 // 7. Church Specialized Exporters (유년부 2026 회계장부 및 4분할 A4 감사증빙철)
 app.post('/api/export/church-excel', async (req, res) => {
   try {
-    const { records } = req.body;
-    const { exportPath, exportFileName } = await generateChurchLedgerExcel(records);
+    let { records, incomeRecords } = req.body || {};
+    if (!records || records.length === 0) records = getAllReceipts();
+    if (!incomeRecords) incomeRecords = getAllIncome();
+    const { exportPath, exportFileName } = await generateChurchLedgerExcel(records, incomeRecords);
     res.download(exportPath, exportFileName);
   } catch (error) {
     console.error('교회 회계장부 엑셀 내보내기 에러:', error);
@@ -616,8 +752,12 @@ app.post('/api/shutdown', (req, res) => {
   }, 600);
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` [Receipt Ledger Server] Ready on http://localhost:${PORT}`);
-  console.log(`====================================================`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(` [Receipt Ledger Server] Ready on http://localhost:${PORT}`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;

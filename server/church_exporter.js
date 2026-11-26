@@ -6,9 +6,10 @@ const { inferChurchCode } = require('./church_rules');
 
 /**
  * 2026년 교회 유년부 회계장부 엑셀 생성
- * 1월 ~ 12월 월별 시트에 영수증 내역을 정렬하여 배치
+ * 1월 ~ 12월 월별 시트에 영수증(지출) 및 수입/찬조 내역을 일자순으로 정렬하여 배치
+ * 비금전 찬조 물품은 별도 '찬조물품대장' 시트에 감사 증빙용으로 출력
  */
-async function generateChurchLedgerExcel(records) {
+async function generateChurchLedgerExcel(records = [], incomeRecords = []) {
   const templatePath = path.join(__dirname, 'church_template.xlsx');
   const workbook = new ExcelJS.Workbook();
   
@@ -20,12 +21,41 @@ async function generateChurchLedgerExcel(records) {
     ws.addRow(['코드', '月', '日', '내    용', '영수 No.', '수입금액', '지출금액', '남은금액']);
   }
 
-  // records 정렬 (일자 오름차순)
-  const sorted = [...(records || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  // 지출 레코드 정규화
+  const expenseEntries = (records || []).map(r => ({
+    type: 'expense',
+    date: r.date || '',
+    code: r.code || inferChurchCode(r.merchant, r.items, r.memo).code,
+    merchant: r.merchant || '',
+    items: r.items || '',
+    quantity: Number(r.quantity) || 1,
+    amount: Number(r.amount) || 0,
+    memo: r.memo || ''
+  }));
+
+  // 수입 레코드 정규화 (금전 수입)
+  const monetaryIncomes = (incomeRecords || []).filter(i => !i.isInKind).map(i => ({
+    type: 'income',
+    date: i.date || '',
+    code: i.code || 'A01',
+    donator: i.donator || '',
+    itemName: i.itemName || i.codeLabel || '청구액',
+    quantity: Number(i.quantity) || 1,
+    amount: Number(i.amount) || 0,
+    memo: i.memo || ''
+  }));
+
+  // 비금전 찬조 물품 레코드
+  const inKindItems = (incomeRecords || []).filter(i => i.isInKind);
+
+  // 지출 + 금전 수입을 일자순으로 통합
+  const allMonthlyEntries = [...expenseEntries, ...monetaryIncomes].sort((a, b) =>
+    (a.date || '').localeCompare(b.date || '')
+  );
 
   // 월별 그룹화 (1월 ~ 12월)
   const monthlyGroups = {};
-  sorted.forEach(rec => {
+  allMonthlyEntries.forEach(rec => {
     let month = 1;
     let day = 1;
     if (rec.date) {
@@ -46,7 +76,7 @@ async function generateChurchLedgerExcel(records) {
       ws.addRow(['코드', '月', '日', '내    용', '영수 No.', '수입금액', '지출금액', '남은금액']);
     }
 
-    // 신규 영수증 작성을 위해 해당 월의 샘플 데이터 영역(Row 6부터 누계 전까지) 초기화
+    // 신규 작성을 위해 해당 월의 샘플 데이터 영역(Row 6부터 누계 전까지) 초기화
     for (let r = 6; r <= 35; r++) {
       const cell4 = ws.getCell(r, 4).value;
       if (cell4 === '누계' || cell4 === '월계') break;
@@ -57,26 +87,104 @@ async function generateChurchLedgerExcel(records) {
 
     let startRow = 6;
     let receiptSeq = 1;
-    list.forEach(item => {
-      const code = item.code || inferChurchCode(item.merchant, item.items, item.memo).code;
-      const row = ws.getRow(startRow++);
-      
-      const qtySuffix = (item.quantity && Number(item.quantity) > 1) ? ` ${item.quantity}개` : '';
-      const content = `${item.merchant || ''} - ${item.items || '물품구입'}${qtySuffix}`.trim();
 
-      row.getCell(1).value = code;                           // 코드
-      row.getCell(2).value = item.month;                     // 月
-      row.getCell(3).value = item.day;                       // 日
-      row.getCell(4).value = content;                        // 내용 (가맹점 - 품목 수량개)
-      row.getCell(5).value = receiptSeq++;                   // 영수 No.
-      row.getCell(6).value = '';                             // 수입금액
-      row.getCell(7).value = Number(item.amount) || 0;       // 지출금액
-      
-      // 통화 서식
-      row.getCell(7).numFmt = '#,##0';
+    list.forEach(item => {
+      const row = ws.getRow(startRow++);
+      row.getCell(1).value = item.code;
+      row.getCell(2).value = item.month;
+      row.getCell(3).value = item.day;
+
+      if (item.type === 'income') {
+        // 수입 행
+        const donatorPrefix = item.donator ? `[${item.donator}] ` : '';
+        row.getCell(4).value = `(수입) ${donatorPrefix}${item.itemName}`.trim();
+        row.getCell(5).value = ''; // 영수 No 없음
+        row.getCell(6).value = item.amount;
+        row.getCell(7).value = '';
+        row.getCell(6).numFmt = '#,##0';
+      } else {
+        // 지출 행
+        const qtySuffix = (item.quantity && Number(item.quantity) > 1) ? ` ${item.quantity}개` : '';
+        const content = `${item.merchant || ''} - ${item.items || '물품구입'}${qtySuffix}`.trim();
+        row.getCell(4).value = content;
+        row.getCell(5).value = receiptSeq++;
+        row.getCell(6).value = '';
+        row.getCell(7).value = item.amount;
+        row.getCell(7).numFmt = '#,##0';
+      }
       row.commit();
     });
   });
+
+  // 찬조 물품(비금전 기증)이 있는 경우 별도 시트 '찬조물품대장' 생성/작성
+  if (inKindItems.length > 0) {
+    let inKindWs = workbook.getWorksheet('찬조물품대장');
+    if (inKindWs) workbook.removeWorksheet(inKindWs.id);
+    inKindWs = workbook.addWorksheet('찬조물품대장');
+
+    // Title & Headers
+    inKindWs.mergeCells('A1:G1');
+    const titleCell = inKindWs.getCell('A1');
+    titleCell.value = '교회 유년부 찬조 및 후원 물품 관리대장';
+    titleCell.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF004A3D' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    inKindWs.getRow(1).height = 32;
+
+    const headers = ['연번', '일자', '과목코드', '기증자(성도/교사)', '품목명(기증물품)', '수량', '환산추정가(원)', '용도 및 비고'];
+    const headerRow = inKindWs.getRow(3);
+    headers.forEach((h, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = h;
+      cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF005B4B' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin' }, left: { style: 'thin' },
+        bottom: { style: 'thin' }, right: { style: 'thin' }
+      };
+    });
+    headerRow.height = 24;
+
+    inKindItems.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    let rowIdx = 4;
+    inKindItems.forEach((item, idx) => {
+      const row = inKindWs.getRow(rowIdx++);
+      row.getCell(1).value = idx + 1;
+      row.getCell(2).value = item.date;
+      row.getCell(3).value = item.code || 'A07';
+      row.getCell(4).value = item.donator || '익명';
+      row.getCell(5).value = item.itemName;
+      row.getCell(6).value = `${item.quantity || 1}개`;
+      row.getCell(7).value = item.amount || 0;
+      row.getCell(8).value = item.memo || '';
+
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'center' };
+      row.getCell(6).alignment = { horizontal: 'center' };
+      row.getCell(7).alignment = { horizontal: 'right' };
+      row.getCell(7).numFmt = '#,##0';
+
+      for (let c = 1; c <= 8; c++) {
+        row.getCell(c).border = {
+          top: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          left: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          bottom: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          right: { style: 'thin', color: { argb: 'FFD5CEC5' } }
+        };
+      }
+    });
+
+    inKindWs.getColumn(1).width = 8;
+    inKindWs.getColumn(2).width = 14;
+    inKindWs.getColumn(3).width = 12;
+    inKindWs.getColumn(4).width = 16;
+    inKindWs.getColumn(5).width = 24;
+    inKindWs.getColumn(6).width = 10;
+    inKindWs.getColumn(7).width = 16;
+    inKindWs.getColumn(8).width = 28;
+  }
 
   const exportFileName = `교회회계장부_${Date.now()}.xlsx`;
   const exportPath = path.join(__dirname, '..', 'uploads', exportFileName);
