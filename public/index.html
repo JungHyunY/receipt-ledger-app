@@ -187,6 +187,38 @@
         </div>
       </div>
 
+      <!-- Live Budget HUD Banner (실시간 1년 예산 집행 현황 & 빠른 입력) -->
+      <div id="liveBudgetBanner" class="bg-white border border-yds-border rounded-xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs">
+            <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-yds-ink-900 font-mono">2026 연간 예산 실시간 집행 현황</span>
+              <span id="bannerBurnBadge" class="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-yds-ivory text-yds-ink-700 border border-yds-border">소진율 계산 중...</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-xs font-mono text-yds-ink-600 mt-1">
+              <span>1년 총예산: <b id="bannerTotalBudget" class="text-yds-ink-900">0원</b></span>
+              <span class="text-yds-borderStrong">|</span>
+              <span>지출 누계: <b id="bannerTotalSpent" class="text-rose-600">0원</b></span>
+              <span class="text-yds-borderStrong">|</span>
+              <span>잔여 예산: <b id="bannerTotalRemaining" class="text-emerald-700">0원</b></span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openTotalBudgetModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="1년 총 예산액(예: 900만원)을 한 번에 입력하고 33개 과목에 자동 배분">
+            <i data-lucide="coins" class="w-3.5 h-3.5"></i>
+            <span>1년 총 예산 입력/수정</span>
+          </button>
+          <button onclick="switchView('budget')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="33개 회계과목별 상세 예산 확인 및 편집">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+            <span>과목별 상세예산</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Receipts Data Grid HUD (Light Craft Table) -->
       <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs flex flex-col">
         <div class="px-5 py-3 border-b border-yds-border flex flex-wrap items-center justify-between gap-3 bg-yds-canvas">
@@ -381,6 +413,10 @@
             <option value="2027">2027년도 예산</option>
             <option value="2025">2025년도 예산</option>
           </select>
+          <button onclick="openTotalBudgetModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="1년 총 예산액(예: 900만원)을 한 번에 입력하고 비율별 자동 배분">
+            <i data-lucide="coins" class="w-3.5 h-3.5"></i>
+            <span>1년 총 예산 일괄입력</span>
+          </button>
           <input type="file" id="budgetExcelInput" accept=".xlsx" class="hidden" onchange="handleBudgetExcelUpload(event)">
           <button onclick="document.getElementById('budgetExcelInput').click()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="작성된 엑셀 파일(.xlsx)을 업로드하여 해당 연도 예산 일괄 불러오기/갱신">
             <i data-lucide="file-up" class="w-3.5 h-3.5 text-yds-gold-600"></i>
@@ -569,6 +605,76 @@
   <!-- MODALS                                                   -->
   <!-- ======================================================== -->
 
+  <!-- 1년 총 예산 일괄 입력 및 배분 모달 -->
+  <div id="totalBudgetModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white border border-yds-borderStrong rounded-xl max-w-md w-full p-6 shadow-xl hud-brackets">
+      <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-3">
+        <h3 class="text-sm font-bold text-yds-ink-900 flex items-center gap-2 font-mono">
+          <i data-lucide="calculator" class="w-4 h-4 text-emerald-600"></i>
+          <span>1년 총 예산 일괄 책정 / 배분</span>
+        </h3>
+        <button onclick="closeTotalBudgetModal()" class="text-yds-ink-400 hover:text-yds-ink-900">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-yds-ink-700 mb-1 font-medium">대상 연도</label>
+          <select id="totalBudgetYear" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono font-bold focus:outline-none focus:border-yds-pineTeal-500">
+            <option value="2026" selected>2026년도</option>
+            <option value="2027">2027년도</option>
+            <option value="2025">2025년도</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-yds-ink-700 mb-1 font-medium">1년 총 예산액 (원)</label>
+          <div class="relative">
+            <input type="number" id="totalAnnualBudgetAmount" placeholder="예: 9000000" value="9000000" step="10000" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2.5 text-yds-ink-900 font-mono font-bold text-sm focus:outline-none focus:border-yds-pineTeal-500">
+            <span class="absolute right-3 top-2.5 text-xs text-yds-ink-400 font-mono">KRW</span>
+          </div>
+          <p class="text-[11px] text-yds-ink-500 mt-1">교회에서 승인받은 1년 총 예산(예: 9,000,000원)을 입력하면 33개 과목에 맞추어 자동 배분합니다.</p>
+        </div>
+
+        <div>
+          <label class="block text-yds-ink-700 mb-1.5 font-medium">과목별 배분 방식</label>
+          <div class="space-y-2">
+            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-yds-border cursor-pointer hover:bg-yds-ivory">
+              <input type="radio" name="budgetDistributeMethod" value="WEIGHTED" checked class="mt-0.5">
+              <div>
+                <div class="font-bold text-yds-ink-900">유년부 표준 가중치 자동 배분 (추천)</div>
+                <div class="text-[11px] text-yds-ink-500">여름성경학교(20%), 주일간식(18%), 겨울성경학교(10%), 달란트(7%), 공과교재(6%), 시상(8%) 등 실무 표준 비율 자동 분할</div>
+              </div>
+            </label>
+            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-yds-border cursor-pointer hover:bg-yds-ivory">
+              <input type="radio" name="budgetDistributeMethod" value="CURRENT_RATIO" class="mt-0.5">
+              <div>
+                <div class="font-bold text-yds-ink-900">현재 입력된 과목 비율 유지</div>
+                <div class="text-[11px] text-yds-ink-500">현재 등록되어 있는 과목별 금액 비율을 그대로 유지하며 총액만 스케일링</div>
+              </div>
+            </label>
+            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-yds-border cursor-pointer hover:bg-yds-ivory">
+              <input type="radio" name="budgetDistributeMethod" value="EQUAL" class="mt-0.5">
+              <div>
+                <div class="font-bold text-yds-ink-900">33개 과목 균등 배분</div>
+                <div class="text-[11px] text-yds-ink-500">33개 모든 회계과목에 동일한 금액(총액 / 33) 균등 배정</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-yds-border flex items-center justify-end gap-2">
+          <button type="button" onclick="closeTotalBudgetModal()" class="px-3.5 py-1.5 rounded-lg border border-yds-border text-yds-ink-700 hover:bg-yds-canvas">취소</button>
+          <button type="button" onclick="applyAndSaveTotalBudget()" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 shadow-xs">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>배분 적용 및 저장</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Income & In-Kind Add/Edit Modal -->
   <div id="incomeModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
     <div class="bg-white border border-yds-borderStrong rounded-xl max-w-lg w-full p-6 shadow-xl hud-brackets">
@@ -719,6 +825,7 @@
       await loadChurchCodes();
       await loadIncomeCodes();
       await loadReceiptsFromDB();
+      await updateLiveBudgetBanner();
     });
 
     // ----------------------------------------------------
@@ -761,9 +868,10 @@
         const res = await fetch('/api/church/income-codes');
         incomeCodes = await res.json();
         const sel = document.getElementById('incomeCodeSelect');
-        sel.innerHTML = incomeCodes.map(c => `
-          <option value="${c.code}">[${c.code}] ${c.label}</option>
-        `).join('');
+        sel.innerHTML = incomeCodes.map(c => {
+          const isSpecial = c.category === '특별찬조' || c.code === 'A07' || c.code === 'A08';
+          return `<option value="${c.code}" ${isSpecial ? 'class="font-bold text-amber-700 bg-amber-50"' : ''}>${isSpecial ? '⭐ [찬조] ' : ''}[${c.code}] [${c.category}] ${c.label}</option>`;
+        }).join('');
       } catch (e) {
         console.error('수입 코드 로드 실패', e);
       }
@@ -775,6 +883,7 @@
         records = await res.json();
         renderMonthTabs();
         renderTable();
+        await updateLiveBudgetBanner();
       } catch (e) {
         console.error('DB 영수증 로드 실패', e);
       }
@@ -1011,7 +1120,9 @@
           optionsHtml += `<optgroup label="${cat}">`;
           items.forEach(c => {
             const isSelected = c.code === currentCode;
-            optionsHtml += `<option value="${c.code}" ${isSelected ? 'selected' : ''}>[${c.code}] ${c.label}</option>`;
+            const isSpecial = c.code === 'S01' || c.category === '특별찬조';
+            const prefix = isSpecial ? '⭐ [특별찬조] ' : `[${c.code}] `;
+            optionsHtml += `<option value="${c.code}" ${isSelected ? 'selected' : ''} class="${isSpecial ? 'font-bold text-amber-700 bg-amber-50' : ''}">${prefix}${c.label}</option>`;
           });
           optionsHtml += `</optgroup>`;
         });
@@ -1290,12 +1401,17 @@
           ? `<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">찬조물품</span>`
           : `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">금전수입</span>`;
 
+        const isSponsor = r.code === 'A07' || r.code === 'A08';
+        const codeDisplay = isSponsor
+          ? `<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 font-bold font-mono text-[11px]">⭐ [${r.code}] ${r.codeLabel || '특별찬조'}</span>`
+          : `<span class="font-mono font-medium text-yds-ink-800">[${r.code}] ${r.codeLabel || ''}</span>`;
+
         return `
           <tr class="hover:bg-yds-canvas transition-colors">
             <td class="py-2.5 px-3 text-center font-mono text-yds-ink-400 font-medium">${String(i + 1).padStart(2, '0')}</td>
             <td class="py-2.5 px-3 font-mono text-yds-ink-900">${r.date || ''}</td>
             <td class="py-2.5 px-2.5 text-center">${typeBadge}</td>
-            <td class="py-2.5 px-3 font-mono font-medium text-yds-ink-800">[${r.code}] ${r.codeLabel || ''}</td>
+            <td class="py-2.5 px-3">${codeDisplay}</td>
             <td class="py-2.5 px-3 font-semibold text-yds-ink-900">${r.donator || '-'}</td>
             <td class="py-2.5 px-3 font-medium text-yds-ink-900">${r.itemName || ''}</td>
             <td class="py-2.5 px-2 text-center font-mono font-semibold">${r.quantity || 1}개</td>
@@ -1543,6 +1659,7 @@
         });
         alert(`${year}년도 예산 설정이 안전하게 저장되었습니다.`);
         await loadBudgetSummary(year);
+        await updateLiveBudgetBanner();
       } catch (e) {
         alert('예산 저장 실패: ' + e.message);
       }
@@ -1575,6 +1692,7 @@
         if (data.success) {
           alert(`${year}년도 예산 ${data.count}개 과목을 엑셀로부터 성공적으로 불러왔습니다!`);
           await loadBudgetSummary(year);
+          await updateLiveBudgetBanner();
         } else {
           alert('예산 엑셀 가져오기 실패: ' + data.error);
         }
@@ -1582,6 +1700,174 @@
         alert('엑셀 업로드 처리 실패: ' + err.message);
       } finally {
         e.target.value = '';
+      }
+    }
+
+    // ----------------------------------------------------
+    // Live Budget Banner & 1-Click Total Budget Allocator
+    // ----------------------------------------------------
+    async function updateLiveBudgetBanner() {
+      try {
+        const res = await fetch('/api/budget/2026');
+        const data = await res.json();
+        const bannerBudget = document.getElementById('bannerTotalBudget');
+        const bannerSpent = document.getElementById('bannerTotalSpent');
+        const bannerRemaining = document.getElementById('bannerTotalRemaining');
+        const bannerBurn = document.getElementById('bannerBurnBadge');
+        if (bannerBudget) bannerBudget.innerText = `${data.totalBudget.toLocaleString()}원`;
+        if (bannerSpent) bannerSpent.innerText = `${data.totalSpent.toLocaleString()}원`;
+        if (bannerRemaining) bannerRemaining.innerText = `${data.totalRemaining.toLocaleString()}원`;
+        if (bannerBurn) {
+          bannerBurn.innerText = `소진율 ${data.overallBurnRate}%`;
+          if (data.overallBurnRate > 100) {
+            bannerBurn.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-rose-50 text-rose-700 border border-rose-200';
+          } else if (data.overallBurnRate > 80) {
+            bannerBurn.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-amber-50 text-amber-700 border border-amber-200';
+          } else {
+            bannerBurn.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+          }
+        }
+      } catch (e) {
+        console.error('라이브 예산 배너 갱신 실패', e);
+      }
+    }
+
+    async function openTotalBudgetModal() {
+      const modal = document.getElementById('totalBudgetModal');
+      const yearSelect = document.getElementById('budgetYearSelect');
+      const targetYear = yearSelect ? yearSelect.value : '2026';
+      document.getElementById('totalBudgetYear').value = targetYear;
+      try {
+        const res = await fetch(`/api/budget/${targetYear}`);
+        const data = await res.json();
+        if (data && data.totalBudget > 0) {
+          document.getElementById('totalAnnualBudgetAmount').value = data.totalBudget;
+        } else {
+          document.getElementById('totalAnnualBudgetAmount').value = 9000000;
+        }
+      } catch (e) {
+        document.getElementById('totalAnnualBudgetAmount').value = 9000000;
+      }
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeTotalBudgetModal() {
+      document.getElementById('totalBudgetModal').classList.add('hidden');
+    }
+
+    async function applyAndSaveTotalBudget() {
+      const year = document.getElementById('totalBudgetYear').value;
+      const totalAmount = Number(document.getElementById('totalAnnualBudgetAmount').value) || 0;
+      if (totalAmount <= 0) {
+        alert('1년 총 예산액을 0원보다 크게 입력해주세요.');
+        return;
+      }
+
+      const method = document.querySelector('input[name="budgetDistributeMethod"]:checked').value;
+
+      try {
+        const res = await fetch(`/api/budget/${year}`);
+        const data = await res.json();
+        const items = data.items;
+
+        const weights = {
+          'D01': 20.0, // 여름성경학교
+          'H04': 18.0, // 간식 및 기타선물비
+          'D02': 10.0, // 겨울성경학교
+          'E06': 7.0,  // 달란트시장
+          'F02': 6.0,  // 공과교재/성경
+          'H02': 4.0,  // 연말시상
+          'E01': 4.0,  // 성탄축하행사
+          'B02': 4.0,  // 교사수련회
+          'E04': 3.0,  // 어린이주일행사
+          'H03': 3.0,  // 전도시상 및 새가족환영
+          'S01': 3.0,  // 특별찬조 (물품, 회식)
+          'B05': 2.5,  // 교사친교/위로
+          'F03': 2.0,  // 사무/문구용품
+          'A01': 2.0,  // 주일예배
+          'F01': 1.5,  // 주보/인쇄물
+          'E02': 1.5,  // 부활절행사
+          'E03': 1.5,  // 추수감사절행사
+          'G02': 1.0,  // 노회어린이대회
+          'G01': 1.0,  // 노회성경고사
+          'E08': 1.0,  // 생일축하
+          'B01': 1.0,  // 교사회
+          'B04': 0.8,  // 교사교육/세미나
+          'C01': 0.8,  // 전도축제
+          'C02': 0.7,  // 총동원주일
+          'E07': 0.7,  // 졸업/진급식
+          'F04': 0.5,  // 시청각/미디어
+          'F05': 0.5,  // 환경미화/게시판
+          'A02': 0.5,  // 헌신예배
+          'B03': 0.5,  // 교사기도회
+          'E05': 0.5,  // 성경암송대회
+          'H01': 0.5,  // 분기별시상
+          'Z01': 1.5   // 기타/예비비
+        };
+
+        let sumAllocated = 0;
+        if (method === 'WEIGHTED') {
+          items.forEach((item, idx) => {
+            if (idx === items.length - 1) {
+              item.budgetAmount = Math.max(0, totalAmount - sumAllocated);
+            } else {
+              const w = weights[item.code] || 1.0;
+              const amt = Math.round((totalAmount * (w / 100)) / 1000) * 1000;
+              item.budgetAmount = amt;
+              sumAllocated += amt;
+            }
+          });
+        } else if (method === 'CURRENT_RATIO' && data.totalBudget > 0) {
+          const prevTotal = data.totalBudget;
+          items.forEach((item, idx) => {
+            if (idx === items.length - 1) {
+              item.budgetAmount = Math.max(0, totalAmount - sumAllocated);
+            } else {
+              const ratio = item.budgetAmount / prevTotal;
+              const amt = Math.round((totalAmount * ratio) / 1000) * 1000;
+              item.budgetAmount = amt;
+              sumAllocated += amt;
+            }
+          });
+        } else {
+          // EQUAL
+          const base = Math.round((totalAmount / items.length) / 1000) * 1000;
+          items.forEach((item, idx) => {
+            if (idx === items.length - 1) {
+              item.budgetAmount = Math.max(0, totalAmount - sumAllocated);
+            } else {
+              item.budgetAmount = base;
+              sumAllocated += base;
+            }
+          });
+        }
+
+        const payload = items.map(item => ({
+          code: item.code,
+          codeLabel: item.codeLabel,
+          category: item.category,
+          amount: item.budgetAmount,
+          memo: item.memo || ''
+        }));
+
+        const saveRes = await fetch(`/api/budget/${year}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: payload })
+        });
+        const saveJson = await saveRes.json();
+        if (!saveJson.success) throw new Error(saveJson.error || '저장 실패');
+
+        closeTotalBudgetModal();
+        alert(`${year}년도 1년 총 예산 ${totalAmount.toLocaleString()}원이 33개 과목에 성공적으로 자동 배분 저장되었습니다.`);
+        await updateLiveBudgetBanner();
+        if (currentView === 'budget') {
+          document.getElementById('budgetYearSelect').value = year;
+          await loadBudgetSummary(year);
+        }
+      } catch (err) {
+        alert('예산 배분 실패: ' + err.message);
       }
     }
 

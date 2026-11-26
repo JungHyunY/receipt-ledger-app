@@ -31,18 +31,19 @@ const ALL_CHURCH_CODES = [
   { code: 'H02', category: '시상(선물)비', label: '연말시상', detail: '연말개근상, 정근상' },
   { code: 'H03', category: '시상(선물)비', label: '전도시상 및 새가족환영', detail: '새친구선물, 등반선물, 과자꾸러미' },
   { code: 'H04', category: '시상(선물)비', label: '간식 및 기타선물비', detail: '주일간식, 빵, 과자, 음료, 떡' },
-  { code: 'S01', category: '특별찬조', label: '물품, 회식', detail: '교사회식, 식대' },
+  { code: 'S01', category: '특별찬조', label: '특별찬조 (물품, 회식)', detail: '교사회식, 식대, 특별찬조금 지출' },
   { code: 'Z01', category: '예비비', label: '기타/예비비', detail: '병문안, 축의금, 기타경비' }
 ];
 
-// 교회 수입 과목 마스터 (A01 ~ A99)
+// 교회 수입 과목 마스터 (A01 ~ A99, RSB) - 2026년 유년부 공식 기준
 const ALL_INCOME_CODES = [
-  { code: 'A01', category: '정기수입', label: '청구액(부서예산 청구)', detail: '교회 본당 청구 입금액' },
-  { code: 'A02', category: '정기수입', label: '전년이월', detail: '전년도 잔액 이월금' },
-  { code: 'A03', category: '행사수입', label: '성경책판매', detail: '성경책/찬송가 판매수입' },
-  { code: 'A04', category: '행사수입', label: '성경학교등록비', detail: '여름/겨울 성경학교 참가등록비' },
-  { code: 'A05', category: '행사수입', label: '노회대회', detail: '노회 어린이대회 참가비/지원금' },
-  { code: 'A06', category: '이자수입', label: '은행이자', detail: '유년부 통장 결산 이자' },
+  { code: 'A01', category: '지원/후원금', label: '청구액(부서예산 청구)', detail: '교회 본당 청구 입금액' },
+  { code: 'A02', category: '지원/후원금', label: '전년이월', detail: '전년도 잔액 이월금' },
+  { code: 'RSB', category: '지원/후원금', label: '추경예산', detail: '추가경정예산' },
+  { code: 'A03', category: '부서별수입금', label: '성경책판매대금·공과', detail: '성경책/찬송가/공과 판매수입' },
+  { code: 'A04', category: '부서별수입금', label: '성경학교등록비', detail: '여름/겨울 성경학교 참가등록비' },
+  { code: 'A05', category: '부서별수입금', label: '노회대회등록비', detail: '노회 어린이대회 참가비/지원금' },
+  { code: 'A06', category: '부서별수입금', label: '은행이자', detail: '유년부 통장 결산 이자' },
   { code: 'A07', category: '특별찬조', label: '찬조(물품후원)', detail: '간식, 선물, 도서 등 비금전 물품 기증' },
   { code: 'A08', category: '특별찬조', label: '찬조(회식/스승의날)', detail: '교사회식, 스승의날 찬조금' },
   { code: 'A99', category: '기타수입', label: '기타수입', detail: '기타 찬조 및 잡수입' }
