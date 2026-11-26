@@ -381,6 +381,15 @@
             <option value="2027">2027년도 예산</option>
             <option value="2025">2025년도 예산</option>
           </select>
+          <input type="file" id="budgetExcelInput" accept=".xlsx" class="hidden" onchange="handleBudgetExcelUpload(event)">
+          <button onclick="document.getElementById('budgetExcelInput').click()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="작성된 엑셀 파일(.xlsx)을 업로드하여 해당 연도 예산 일괄 불러오기/갱신">
+            <i data-lucide="file-up" class="w-3.5 h-3.5 text-yds-gold-600"></i>
+            <span>예산 엑셀 가져오기</span>
+          </button>
+          <button onclick="exportBudgetExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="현재 연도 예산 배정표를 엑셀 파일(.xlsx)로 다운로드">
+            <i data-lucide="file-down" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+            <span>예산 엑셀 내보내기</span>
+          </button>
           <button onclick="saveAllBudgets()" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-yds-pineTeal-500 hover:bg-yds-pineTeal-600 text-white border border-yds-pineTeal-700 flex items-center gap-1.5 font-mono shadow-xs">
             <i data-lucide="save" class="w-3.5 h-3.5"></i>
             <span>예산 변경사항 저장</span>
@@ -463,6 +472,10 @@
           </div>
 
           <div class="flex items-center gap-2">
+            <button onclick="exportPlannerExcel()" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="차년도 예산 기획안을 회의 제출용 엑셀 보고서로 다운로드">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4 text-amber-600"></i>
+              <span>기획안 엑셀 내보내기</span>
+            </button>
             <button onclick="applySimulatedPlanToNextYear()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="시뮬레이션된 예산안을 차년도 실제 예산으로 확정/적용">
               <i data-lucide="check-check" class="w-4 h-4"></i>
               <span>차년도 예산 확정 및 적용</span>
@@ -1533,6 +1546,48 @@
       } catch (e) {
         alert('예산 저장 실패: ' + e.message);
       }
+    }
+
+    async function exportBudgetExcel() {
+      const year = document.getElementById('budgetYearSelect').value;
+      window.location.href = `/api/budget/${year}/export-excel`;
+    }
+
+    async function handleBudgetExcelUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const year = document.getElementById('budgetYearSelect').value;
+      if (!confirm(`'${file.name}' 파일의 예산 데이터를 ${year}년도 예산으로 불러오시겠습니까?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('budgetFile', file);
+
+      try {
+        const res = await fetch(`/api/budget/${year}/import-excel`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`${year}년도 예산 ${data.count}개 과목을 엑셀로부터 성공적으로 불러왔습니다!`);
+          await loadBudgetSummary(year);
+        } else {
+          alert('예산 엑셀 가져오기 실패: ' + data.error);
+        }
+      } catch (err) {
+        alert('엑셀 업로드 처리 실패: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    }
+
+    async function exportPlannerExcel() {
+      const rate = document.getElementById('customGrowthInput') ? document.getElementById('customGrowthInput').value : 0;
+      window.location.href = `/api/budget/simulate/2026/export-excel?growthRate=${rate}`;
     }
 
     // ----------------------------------------------------

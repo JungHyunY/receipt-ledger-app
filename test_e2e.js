@@ -130,8 +130,34 @@ async function runE2ETests() {
     assert.strictEqual(restoreRes.data.success, true);
     console.log(`[PASS] 11. Restore: Successfully restored ${restoreRes.data.restoredBudget} budget items and ${restoreRes.data.restoredIncome} income records.`);
 
+    // 12. Budget Excel Export
+    const budgetExcelRes = await client.get('/api/budget/2026/export-excel', { responseType: 'arraybuffer' });
+    assert.strictEqual(budgetExcelRes.status, 200);
+    assert(budgetExcelRes.data.length > 3000, 'Budget excel file should be > 3000 bytes');
+    console.log(`[PASS] 12. Budget Excel Export: ${budgetExcelRes.data.length} bytes generated.`);
+
+    // 13. Budget Excel Import (Upload & Round-trip)
+    const FormData = require('form-data');
+    const form = new FormData();
+    form.append('budgetFile', Buffer.from(budgetExcelRes.data), {
+      filename: '2026_예산_테스트.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const importRes = await client.post('/api/budget/2026/import-excel', form, {
+      headers: form.getHeaders()
+    });
+    assert.strictEqual(importRes.status, 200);
+    assert(importRes.data.count >= 30, 'Should import at least 30 budget categories');
+    console.log(`[PASS] 13. Budget Excel Import: ${importRes.data.count} categories successfully parsed and saved.`);
+
+    // 14. Planner Excel Export
+    const plannerExcelRes = await client.get('/api/budget/simulate/2026/export-excel?growthRate=5', { responseType: 'arraybuffer' });
+    assert.strictEqual(plannerExcelRes.status, 200);
+    assert(plannerExcelRes.data.length > 3000, 'Planner excel report should be > 3000 bytes');
+    console.log(`[PASS] 14. Next Year Planner Excel Report: ${plannerExcelRes.data.length} bytes generated.`);
+
     console.log('\n========================================');
-    console.log('>>> ALL 11 E2E TESTS PASSED 100%! <<<');
+    console.log('>>> ALL 14 E2E TESTS PASSED 100%! <<<');
     console.log('========================================');
   } catch (err) {
     console.error('E2E TEST FAILED:', err.message, err.response ? err.response.data : '');

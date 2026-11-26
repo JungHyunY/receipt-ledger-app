@@ -319,6 +319,267 @@ app.post('/api/budget/apply-plan', (req, res) => {
   }
 });
 
+// 2-3-1. Budget Excel Export & Import Endpoints
+app.get('/api/budget/:year/export-excel', async (req, res) => {
+  try {
+    const year = parseInt(req.params.year, 10) || new Date().getFullYear();
+    const summary = getBudgetSummary(year);
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet(`${year}년도_예산`);
+
+    // Title
+    ws.mergeCells('A1:H1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = `${year}년도 교회 유년부 연간 예산 배정표`;
+    titleCell.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF004A3D' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+
+    // Subtitle
+    ws.mergeCells('A2:H2');
+    const subCell = ws.getCell('A2');
+    subCell.value = `총 예산: ${summary.totalBudget.toLocaleString()}원 | 실집행액: ${summary.totalSpent.toLocaleString()}원 | 잔여예산: ${summary.totalRemaining.toLocaleString()}원 (집행률 ${summary.overallBurnRate}%)`;
+    subCell.font = { name: '맑은 고딕', size: 10, color: { argb: 'FF45403C' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 20;
+
+    // Headers
+    const headers = ['과목코드', '과목명', '분류', '배정예산(원)', '실집행액(원)', '잔여액(원)', '소진율(%)', '비고'];
+    const headerRow = ws.getRow(4);
+    headers.forEach((h, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = h;
+      cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF005B4B' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    });
+    headerRow.height = 24;
+
+    let rowIdx = 5;
+    summary.items.forEach(item => {
+      const row = ws.getRow(rowIdx++);
+      row.getCell(1).value = item.code;
+      row.getCell(2).value = item.codeLabel;
+      row.getCell(3).value = item.category;
+      row.getCell(4).value = item.budgetAmount;
+      row.getCell(5).value = item.actualSpent;
+      row.getCell(6).value = item.remaining;
+      row.getCell(7).value = `${item.burnRate}%`;
+      row.getCell(8).value = item.memo || '';
+
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'right' };
+      row.getCell(5).alignment = { horizontal: 'right' };
+      row.getCell(6).alignment = { horizontal: 'right' };
+      row.getCell(7).alignment = { horizontal: 'center' };
+
+      row.getCell(4).numFmt = '#,##0';
+      row.getCell(5).numFmt = '#,##0';
+      row.getCell(6).numFmt = '#,##0';
+
+      for (let c = 1; c <= 8; c++) {
+        row.getCell(c).border = {
+          top: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          left: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          bottom: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          right: { style: 'thin', color: { argb: 'FFD5CEC5' } }
+        };
+      }
+    });
+
+    ws.getColumn(1).width = 12;
+    ws.getColumn(2).width = 24;
+    ws.getColumn(3).width = 16;
+    ws.getColumn(4).width = 18;
+    ws.getColumn(5).width = 16;
+    ws.getColumn(6).width = 16;
+    ws.getColumn(7).width = 14;
+    ws.getColumn(8).width = 24;
+
+    const fileName = `${year}년도_유년부_예산배정표_${Date.now()}.xlsx`;
+    const exportPath = path.join(__dirname, '..', 'uploads', fileName);
+    await workbook.xlsx.writeFile(exportPath);
+    res.download(exportPath, fileName);
+  } catch (err) {
+    console.error('예산 엑셀 내보내기 실패:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/budget/:year/import-excel', upload.single('budgetFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '업로드된 엑셀 파일이 없습니다.' });
+    }
+
+    const year = parseInt(req.params.year, 10) || new Date().getFullYear();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const ws = workbook.worksheets[0];
+    if (!ws) return res.status(400).json({ error: '유효한 워크시트가 없습니다.' });
+
+    // 헤더 행 탐색
+    let headerRowIdx = 1;
+    let codeCol = 1;
+    let amountCol = 4;
+    let memoCol = 8;
+
+    for (let r = 1; r <= 10; r++) {
+      const row = ws.getRow(r);
+      let foundCode = false;
+      row.eachCell((cell, col) => {
+        const val = String(cell.value || '').trim();
+        if (val.includes('코드')) { codeCol = col; foundCode = true; }
+        if (val.includes('예산') || val.includes('금액')) amountCol = col;
+        if (val.includes('비고') || val.includes('메모')) memoCol = col;
+      });
+      if (foundCode) {
+        headerRowIdx = r;
+        break;
+      }
+    }
+
+    const itemsToSave = [];
+    for (let r = headerRowIdx + 1; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const rawCode = String(row.getCell(codeCol).value || '').trim();
+      if (!rawCode) continue;
+
+      // Extract code like B01, H04, etc.
+      const match = rawCode.match(/[A-Z]\d{2}/i);
+      if (!match) continue;
+      const code = match[0].toUpperCase();
+
+      const rawAmount = row.getCell(amountCol).value;
+      let amount = 0;
+      if (typeof rawAmount === 'number') amount = rawAmount;
+      else if (typeof rawAmount === 'string') amount = parseInt(rawAmount.replace(/[^0-9]/g, ''), 10) || 0;
+      else if (rawAmount && typeof rawAmount === 'object' && rawAmount.result !== undefined) {
+        amount = Number(rawAmount.result) || 0;
+      }
+
+      const memo = String(row.getCell(memoCol).value || '').trim();
+
+      const foundMeta = ALL_CHURCH_CODES.find(c => c.code === code);
+      itemsToSave.push({
+        code,
+        codeLabel: foundMeta ? foundMeta.label : '',
+        category: foundMeta ? foundMeta.category : '',
+        amount,
+        memo
+      });
+    }
+
+    if (itemsToSave.length === 0) {
+      return res.status(400).json({ error: '엑셀 파일에서 유효한 회계 과목코드(B01, H04 등)를 찾을 수 없습니다.' });
+    }
+
+    const saved = saveBudgetItems(year, itemsToSave);
+    res.json({ success: true, count: itemsToSave.length, year, items: saved });
+  } catch (err) {
+    console.error('예산 엑셀 가져오기 실패:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/budget/simulate/:year/export-excel', async (req, res) => {
+  try {
+    const curYear = parseInt(req.params.year, 10) || new Date().getFullYear();
+    const rate = parseFloat(req.query.growthRate) || 0;
+    const sim = simulateNextYearBudget(curYear, rate);
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet(`${sim.nextYear}년도_예산기획안`);
+
+    // Title
+    ws.mergeCells('A1:I1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = `${sim.nextYear}년도 교회 유년부 예산안 기획 보고서 (${curYear}년 실집행 기반)`;
+    titleCell.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF9B6E1F' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+
+    // Subtitle
+    ws.mergeCells('A2:I2');
+    const subCell = ws.getCell('A2');
+    const diffSign = sim.diffTotal >= 0 ? `+${sim.diffTotal.toLocaleString()}` : sim.diffTotal.toLocaleString();
+    subCell.value = `올해총예산: ${sim.currentTotalBudget.toLocaleString()}원 | 올해실집행: ${sim.currentTotalSpent.toLocaleString()}원 | 차년도제안: ${sim.simulatedTotal.toLocaleString()}원 (증감: ${diffSign}원, 적용증감률 ${sim.growthRate}%)`;
+    subCell.font = { name: '맑은 고딕', size: 10, color: { argb: 'FF45403C' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 20;
+
+    // Headers
+    const headers = ['코드', '과목명', '분류', '올해예산(원)', '올해실집행액(원)', '차년도제안예산(원)', '증감액(원)', '증감률(%)', '산출근거/비고'];
+    const headerRow = ws.getRow(4);
+    headers.forEach((h, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.value = h;
+      cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC58F2C' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    });
+    headerRow.height = 24;
+
+    let rowIdx = 5;
+    sim.items.forEach(item => {
+      const row = ws.getRow(rowIdx++);
+      row.getCell(1).value = item.code;
+      row.getCell(2).value = item.codeLabel;
+      row.getCell(3).value = item.category;
+      row.getCell(4).value = item.currentBudget;
+      row.getCell(5).value = item.actualSpent;
+      row.getCell(6).value = item.proposedAmount;
+      row.getCell(7).value = item.diff;
+      row.getCell(8).value = `${item.pctChange > 0 ? '+' : ''}${item.pctChange}%`;
+      row.getCell(9).value = item.memo || '';
+
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'right' };
+      row.getCell(5).alignment = { horizontal: 'right' };
+      row.getCell(6).alignment = { horizontal: 'right' };
+      row.getCell(7).alignment = { horizontal: 'right' };
+      row.getCell(8).alignment = { horizontal: 'center' };
+
+      row.getCell(4).numFmt = '#,##0';
+      row.getCell(5).numFmt = '#,##0';
+      row.getCell(6).numFmt = '#,##0';
+      row.getCell(7).numFmt = '#,##0';
+
+      for (let c = 1; c <= 9; c++) {
+        row.getCell(c).border = {
+          top: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          left: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          bottom: { style: 'thin', color: { argb: 'FFD5CEC5' } },
+          right: { style: 'thin', color: { argb: 'FFD5CEC5' } }
+        };
+      }
+    });
+
+    ws.getColumn(1).width = 10;
+    ws.getColumn(2).width = 24;
+    ws.getColumn(3).width = 16;
+    ws.getColumn(4).width = 16;
+    ws.getColumn(5).width = 16;
+    ws.getColumn(6).width = 18;
+    ws.getColumn(7).width = 16;
+    ws.getColumn(8).width = 12;
+    ws.getColumn(9).width = 28;
+
+    const fileName = `${sim.nextYear}년도_유년부_예산기획안_${Date.now()}.xlsx`;
+    const exportPath = path.join(__dirname, '..', 'uploads', fileName);
+    await workbook.xlsx.writeFile(exportPath);
+    res.download(exportPath, fileName);
+  } catch (err) {
+    console.error('예산기획안 엑셀 내보내기 실패:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 2-4. Income & Sponsorship/Donation Management Endpoints
 app.get('/api/income', (req, res) => {
   try {
