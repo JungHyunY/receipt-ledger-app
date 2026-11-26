@@ -657,12 +657,15 @@
         <div>
           <label class="block text-yds-ink-700 mb-1 font-mono font-medium">OLLAMA_ENDPOINT_HOST</label>
           <input type="text" id="configHost" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500" value="https://mac-macbookpro.tailb1c684.ts.net">
-          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">Tailscale Mesh 또는 로컬 IP 엔드포인트</p>
+          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">Tailscale Mesh 또는 로컬 IP 엔드포인트 (예: http://localhost:11434)</p>
         </div>
         <div>
-          <label class="block text-yds-ink-700 mb-1 font-mono font-medium">VISION_MODEL_ID</label>
+          <label class="block text-yds-ink-700 mb-1 font-mono font-medium">VISION_MODEL_ID (설치된 모델 목록)</label>
+          <select id="configModelSelect" onchange="handleModelSelectChange(this.value)" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500 mb-1.5">
+            <!-- Populated dynamically from Ollama /api/tags -->
+          </select>
           <input type="text" id="configModel" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500" value="gemma4:latest">
-          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">서버 내 설치된 파싱 모델 (gemma4:latest 등)</p>
+          <p class="text-[11px] text-yds-ink-500 mt-1 font-mono">드롭다운에서 선택하거나 직접 모델명을 입력할 수 있습니다.</p>
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-2">
@@ -764,17 +767,24 @@
       }
     }
 
+    let ollamaInfo = null;
+
     async function checkOllamaStatus() {
       const badge = document.getElementById('ollamaStatusBadge');
       const text = document.getElementById('ollamaStatusText');
       try {
         const res = await fetch('/api/ollama/status');
         const data = await res.json();
+        ollamaInfo = data;
         if (data.connected) {
-          badge.className = 'flex items-center gap-2 text-xs px-2.5 py-1 rounded-md bg-yds-pineTeal-50 border border-yds-pineTeal-200 text-yds-pineTeal-700 font-mono font-medium';
-          text.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-yds-pineTeal-500"></span> LINKED (${data.models.length} MODELS)`;
+          const modelCount = data.models ? data.models.length : 0;
+          const modelList = data.models ? data.models.map(m => m.name).join(', ') : '';
+          badge.className = 'flex items-center gap-2 text-xs px-2.5 py-1 rounded-md bg-yds-pineTeal-50 border border-yds-pineTeal-200 text-yds-pineTeal-700 font-mono font-medium cursor-pointer';
+          badge.title = `호스트: ${data.host}\n설치된 모델 (${modelCount}개): ${modelList}\n현재 사용 모델: ${data.activeModel}`;
+          text.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-yds-pineTeal-500"></span> LINKED: ${data.activeModel || 'gemma4:latest'} (${modelCount}개 감지)`;
         } else {
-          badge.className = 'flex items-center gap-2 text-xs px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 font-mono font-medium';
+          badge.className = 'flex items-center gap-2 text-xs px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 font-mono font-medium cursor-pointer';
+          badge.title = `호스트: ${data.host || ''}\n오류: ${data.error || ''}`;
           text.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> STANDBY`;
         }
       } catch (e) {
@@ -1707,12 +1717,43 @@
       }
     }
 
-    function openConfigModal() { document.getElementById('configModal').classList.remove('hidden'); }
+    async function openConfigModal() {
+      const modal = document.getElementById('configModal');
+      const hostInput = document.getElementById('configHost');
+      const modelInput = document.getElementById('configModel');
+      const select = document.getElementById('configModelSelect');
+
+      try {
+        const cfgRes = await fetch('/api/config');
+        const cfg = await cfgRes.json();
+        hostInput.value = cfg.ollamaHost;
+        modelInput.value = cfg.model;
+      } catch (e) {}
+
+      if (ollamaInfo && ollamaInfo.models && ollamaInfo.models.length > 0) {
+        select.innerHTML = '<option value="">-- 감지된 설치 모델 중 선택 --</option>' + ollamaInfo.models.map(m => {
+          const isVision = m.capabilities && m.capabilities.includes('vision');
+          const sizeGb = (m.size / (1024 * 1024 * 1024)).toFixed(1);
+          return `<option value="${m.name}" ${m.name === modelInput.value ? 'selected' : ''}>${m.name} (${sizeGb} GB${isVision ? ' / Vision 지원' : ''})</option>`;
+        }).join('');
+      } else {
+        select.innerHTML = '<option value="">(연결된 모델 목록 없음 - 호스트 확인)</option>';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function handleModelSelectChange(val) {
+      if (val) {
+        document.getElementById('configModel').value = val;
+      }
+    }
+
     function closeConfigModal() { document.getElementById('configModal').classList.add('hidden'); }
 
     async function saveConfig() {
-      const host = document.getElementById('configHost').value;
-      const model = document.getElementById('configModel').value;
+      const host = document.getElementById('configHost').value.trim();
+      const model = document.getElementById('configModel').value.trim();
       await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

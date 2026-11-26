@@ -96,9 +96,20 @@ app.get('/api/ollama/status', async (req, res) => {
       timeout: 5000,
       httpsAgent: agent
     });
-    res.json({ connected: true, models: response.data.models || [] });
+    res.json({
+      connected: true,
+      host: appConfig.ollamaHost,
+      activeModel: appConfig.model,
+      models: response.data.models || []
+    });
   } catch (error) {
-    res.json({ connected: false, error: error.message, hint: 'Ollama 호스트 연결 상태를 확인하세요' });
+    res.json({
+      connected: false,
+      host: appConfig.ollamaHost,
+      activeModel: appConfig.model,
+      error: error.message,
+      hint: 'Ollama 호스트 연결 상태를 확인하세요'
+    });
   }
 });
 
