@@ -6,6 +6,16 @@ const fs = require('fs');
 const axios = require('axios');
 const ExcelJS = require('exceljs');
 const { PDFDocument, rgb } = require('pdf-lib');
+const { generateChurchLedgerExcel, generateChurchAuditPptx } = require('./church_exporter');
+const { ALL_CHURCH_CODES, inferChurchCode } = require('./church_rules');
+const {
+  getAllReceipts,
+  getReceiptById,
+  insertReceipt,
+  updateReceipt,
+  deleteReceipt,
+  clearAllReceipts
+} = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3980;
@@ -131,6 +141,20 @@ app.post('/api/receipts/parse', upload.single('receipt'), async (req, res) => {
       extracted.memo = `(Ollama 파싱 대기: ${ollamaErr.message})`;
     }
 
+    // 계정 코드 자동 추천 할당
+    const inferred = inferChurchCode(extracted.merchant, extracted.items, extracted.memo);
+    extracted.code = inferred.code;
+    extracted.codeLabel = inferred.label;
+    extracted.quantity = extracted.quantity || 1;
+
+    // SQLite DB에 즉시 영구 저장
+    const savedRecord = insertReceipt({
+      id: req.file.filename,
+      filePath: `/uploads/${req.file.filename}`,
+      fileName: req.file.originalname,
+      ...extracted
+    });
+
     res.json({
       success: true,
       file: {
@@ -139,12 +163,87 @@ app.post('/api/receipts/parse', upload.single('receipt'), async (req, res) => {
         path: `/uploads/${req.file.filename}`,
         size: req.file.size
       },
-      data: extracted
+      data: savedRecord
     });
   } catch (error) {
     console.error('영수증 처리 에러:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// 2-1. Receipts Database Endpoints (SQLite Persistence)
+app.get('/api/receipts', (req, res) => {
+  try {
+    const list = getAllReceipts();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/receipts/manual', (req, res) => {
+  try {
+    const newId = `rec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const inferred = inferChurchCode(req.body.merchant, req.body.items, req.body.memo);
+    const item = insertReceipt({
+      id: newId,
+      date: req.body.date || new Date().toISOString().split('T')[0],
+      merchant: req.body.merchant || '',
+      items: req.body.items || '',
+      quantity: Number(req.body.quantity) || 1,
+      amount: Number(req.body.amount) || 0,
+      tax: Number(req.body.tax) || 0,
+      supplyAmount: Number(req.body.supplyAmount) || 0,
+      paymentMethod: req.body.paymentMethod || '카드',
+      code: req.body.code || inferred.code,
+      codeLabel: req.body.codeLabel || inferred.label,
+      memo: req.body.memo || '',
+      filePath: req.body.filePath || null,
+      fileName: req.body.fileName || null
+    });
+    res.json({ success: true, record: item });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/receipts/:id', (req, res) => {
+  try {
+    const updated = updateReceipt(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: '영수증을 찾을 수 없습니다.' });
+    res.json({ success: true, record: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/receipts/:id', (req, res) => {
+  try {
+    deleteReceipt(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/receipts/clear', (req, res) => {
+  try {
+    clearAllReceipts();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2-2. Church Code Master & Real-time Recommendation
+app.get('/api/church/codes', (req, res) => {
+  res.json(ALL_CHURCH_CODES);
+});
+
+app.post('/api/church/recommend-code', (req, res) => {
+  const { merchant, items, memo } = req.body;
+  const result = inferChurchCode(merchant, items, memo);
+  res.json(result);
 });
 
 // 3. Excel Template Analysis Endpoint
@@ -483,6 +582,38 @@ app.post('/api/export/ppt', async (req, res) => {
     console.error('PPT 내보내기 에러:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// 7. Church Specialized Exporters (유년부 2026 회계장부 및 4분할 A4 감사증빙철)
+app.post('/api/export/church-excel', async (req, res) => {
+  try {
+    const { records } = req.body;
+    const { exportPath, exportFileName } = await generateChurchLedgerExcel(records);
+    res.download(exportPath, exportFileName);
+  } catch (error) {
+    console.error('교회 회계장부 엑셀 내보내기 에러:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/export/church-pptx', async (req, res) => {
+  try {
+    const { records } = req.body;
+    const { exportPath, exportFileName } = await generateChurchAuditPptx(records);
+    res.download(exportPath, exportFileName);
+  } catch (error) {
+    console.error('교회 감사증빙 PPTX 내보내기 에러:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 8. Graceful Shutdown Endpoint
+app.post('/api/shutdown', (req, res) => {
+  res.json({ success: true, message: 'Receipt Ledger 서버가 안전하게 종료됩니다.' });
+  setTimeout(() => {
+    console.log('[Receipt Ledger] Shutdown requested by client. Exiting cleanly...');
+    process.exit(0);
+  }, 600);
 });
 
 app.listen(PORT, () => {

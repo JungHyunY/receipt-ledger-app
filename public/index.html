@@ -112,6 +112,10 @@
         <i data-lucide="sliders" class="w-3.5 h-3.5 text-yds-pineTeal-500"></i>
         <span>AI_CONFIG</span>
       </button>
+      <button onclick="shutdownApp()" class="px-3 py-1.5 text-xs rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center gap-1.5 transition-colors font-mono shadow-xs font-semibold" title="프로그램 및 백그라운드 서버 완전 종료">
+        <i data-lucide="power" class="w-3.5 h-3.5 text-rose-600"></i>
+        <span>앱 종료</span>
+      </button>
     </div>
   </header>
 
@@ -131,13 +135,14 @@
             </h2>
             <span id="receiptCountBadge" class="text-xs font-mono px-2 py-0.5 rounded bg-yds-ivory text-yds-ink-700 border border-yds-border font-medium">0 건 등록</span>
           </div>
-          <div id="dropZone" class="border border-dashed border-yds-borderStrong hover:border-yds-pineTeal-500 bg-yds-canvas rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center">
+          <div id="dropZone" class="border border-dashed border-yds-borderStrong hover:border-yds-pineTeal-500 bg-yds-canvas rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center relative">
             <input type="file" id="receiptFileInput" multiple accept="image/*,application/pdf" class="hidden">
+            <input type="file" id="rowImageFileInput" accept="image/*" class="hidden">
             <div class="w-11 h-11 rounded-lg bg-white border border-yds-border flex items-center justify-center mb-3 text-yds-pineTeal-500 shadow-xs">
               <i data-lucide="scan-line" class="w-5 h-5"></i>
             </div>
-            <p class="text-sm font-semibold text-yds-ink-900 mb-1">영수증 파일(이미지/PDF) 드래그 앤 드롭 또는 선택</p>
-            <p class="text-xs text-yds-ink-500 font-mono">SUPPORT: JPG, PNG, WEBP, PDF (MULTI-BATCH PARSING)</p>
+            <p class="text-sm font-semibold text-yds-ink-900 mb-1">영수증 파일 드래그 앤 드롭, 선택 또는 <span class="text-yds-pineTeal-600 font-bold underline decoration-yds-pineTeal-300">Ctrl + V 붙여넣기</span></p>
+            <p class="text-xs text-yds-ink-500 font-mono">SUPPORT: 캡처 복사 즉시 붙여넣기(Ctrl+V), JPG, PNG, WEBP, PDF</p>
           </div>
         </div>
         <div id="uploadProgressContainer" class="hidden mt-4 pt-3 border-t border-yds-border">
@@ -193,6 +198,10 @@
         
         <!-- Tactical Export Actions -->
         <div class="flex items-center gap-2">
+          <button onclick="addManualRow()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs" title="새로운 영수증 행을 직접 수기 입력">
+            <i data-lucide="plus" class="w-3.5 h-3.5 text-yds-pineTeal-600"></i>
+            <span>수기 행 추가</span>
+          </button>
           <button onclick="sortByDate()" class="px-3 py-1.5 text-xs rounded-lg bg-white hover:bg-yds-ivory text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 font-mono shadow-xs">
             <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 text-yds-ink-500"></i>
             <span>날짜순 정렬</span>
@@ -209,9 +218,28 @@
             <i data-lucide="presentation" class="w-3.5 h-3.5"></i>
             <span>감사보고서 PPT</span>
           </button>
+          <div class="h-4 w-px bg-yds-borderStrong mx-0.5"></div>
+          <button onclick="exportChurchExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="2026년 유년부 월별 회계장부 양식으로 자동 코드 매핑 출력">
+            <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+            <span>교회 회계장부(.XLSX)</span>
+          </button>
+          <button onclick="exportChurchPPTX()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white border border-amber-700 flex items-center gap-1.5 font-mono shadow-xs" title="감사준비 출력용 A4 세로 2x2 4분할 증빙철">
+            <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+            <span>감사 4분할 PPTX</span>
+          </button>
           <button onclick="clearAll()" class="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200" title="전체 삭제">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
+        </div>
+      </div>
+
+      <!-- Monthly Tabs Navigation Bar -->
+      <div class="px-5 py-2.5 bg-yds-ivory/60 border-b border-yds-border flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 max-w-full" id="monthTabsContainer">
+          <!-- Rendered dynamically: [전체] [1월] [2월] ... [12월] -->
+        </div>
+        <div id="monthStatsText" class="text-xs font-mono font-semibold text-yds-pineTeal-700 bg-white px-3 py-1 rounded-md border border-yds-borderStrong shadow-2xs whitespace-nowrap">
+          전체: 0건 | 0원
         </div>
       </div>
 
@@ -220,21 +248,23 @@
         <table class="w-full text-left text-xs border-collapse font-sans">
           <thead>
             <tr class="border-b border-yds-border bg-yds-canvas text-yds-ink-500 font-mono font-medium">
-              <th class="py-2.5 px-4 w-12 text-center">NO</th>
-              <th class="py-2.5 px-4 w-32">DATE</th>
-              <th class="py-2.5 px-4 w-44">MERCHANT</th>
-              <th class="py-2.5 px-4">ITEMS / MEMO</th>
-              <th class="py-2.5 px-4 w-24">METHOD</th>
-              <th class="py-2.5 px-4 w-32 text-right">SUPPLY_AMT</th>
-              <th class="py-2.5 px-4 w-28 text-right">TAX</th>
-              <th class="py-2.5 px-4 w-32 text-right">TOTAL_AMT</th>
-              <th class="py-2.5 px-4 w-20 text-center">PROOF</th>
-              <th class="py-2.5 px-4 w-16 text-center">DEL</th>
+              <th class="py-2.5 px-3 w-10 text-center">NO</th>
+              <th class="py-2.5 px-3 w-28">DATE</th>
+              <th class="py-2.5 px-3 w-36">MERCHANT</th>
+              <th class="py-2.5 px-3">ITEMS</th>
+              <th class="py-2.5 px-2 w-14 text-center">QTY</th>
+              <th class="py-2.5 px-3 w-48">CODE (과목추천)</th>
+              <th class="py-2.5 px-2 w-20">METHOD</th>
+              <th class="py-2.5 px-3 w-24 text-right">SUPPLY</th>
+              <th class="py-2.5 px-3 w-20 text-right">TAX</th>
+              <th class="py-2.5 px-3 w-28 text-right">TOTAL</th>
+              <th class="py-2.5 px-2 w-20 text-center">PROOF</th>
+              <th class="py-2.5 px-2 w-10 text-center">DEL</th>
             </tr>
           </thead>
           <tbody id="receiptTableBody" class="divide-y divide-yds-border text-yds-ink-800">
             <tr>
-              <td colspan="10" class="py-12 text-center text-yds-ink-400 font-mono">
+              <td colspan="12" class="py-12 text-center text-yds-ink-400 font-mono">
                 NO RECEIPTS INGESTED. DRAG & DROP EVIDENCE FILES ABOVE.
               </td>
             </tr>
@@ -306,6 +336,8 @@
   <script>
     // State
     let records = [];
+    let churchCodes = [];
+    let currentMonthFilter = 'ALL';
     let currentTemplate = null;
     let columnMappings = {};
 
@@ -314,6 +346,8 @@
       { key: 'date', label: '거래일자 (YYYY-MM-DD)' },
       { key: 'merchant', label: '거래처/상호명' },
       { key: 'items', label: '구입품목/적요' },
+      { key: 'quantity', label: '수량' },
+      { key: 'code', label: '계정코드' },
       { key: 'paymentMethod', label: '결제수단 (카드/현금)' },
       { key: 'supplyAmount', label: '공급가액' },
       { key: 'tax', label: '부가세' },
@@ -321,11 +355,33 @@
       { key: 'memo', label: '비고/메모' }
     ];
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       checkOllamaStatus();
       initDragDrop();
+      await loadChurchCodes();
+      await loadReceiptsFromDB();
     });
+
+    async function loadChurchCodes() {
+      try {
+        const res = await fetch('/api/church/codes');
+        churchCodes = await res.json();
+      } catch (e) {
+        console.error('교회 코드 로드 실패', e);
+      }
+    }
+
+    async function loadReceiptsFromDB() {
+      try {
+        const res = await fetch('/api/receipts');
+        records = await res.json();
+        renderMonthTabs();
+        renderTable();
+      } catch (e) {
+        console.error('DB 영수증 로드 실패', e);
+      }
+    }
 
     async function checkOllamaStatus() {
       const badge = document.getElementById('ollamaStatusBadge');
@@ -373,6 +429,26 @@
       });
 
       document.getElementById('templateFileInput').addEventListener('change', handleTemplateUpload);
+      document.getElementById('rowImageFileInput').addEventListener('change', handleRowImageUpload);
+
+      // Clipboard Paste Listener (화면 어디서든 영수증 스크린샷 Ctrl+V 붙여넣기 지원)
+      window.addEventListener('paste', async (e) => {
+        const items = e.clipboardData ? e.clipboardData.items : [];
+        const imageFiles = [];
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            const blob = items[i].getAsFile();
+            if (blob) {
+              const file = new File([blob], `clipboard_receipt_${Date.now()}_${i + 1}.png`, { type: blob.type });
+              imageFiles.push(file);
+            }
+          }
+        }
+        if (imageFiles.length > 0) {
+          e.preventDefault();
+          await handleFiles(imageFiles);
+        }
+      });
     }
 
     async function handleFiles(files) {
@@ -399,12 +475,7 @@
           const res = await fetch('/api/receipts/parse', { method: 'POST', body: formData });
           const resData = await res.json();
           if (resData.success) {
-            records.push({
-              id: resData.file.id,
-              filePath: resData.file.path,
-              fileName: resData.file.originalName,
-              ...resData.data
-            });
+            records.push(resData.data);
           }
         } catch (err) {
           console.error(err);
@@ -413,9 +484,10 @@
 
       progressBar.style.width = '100%';
       progressPercent.innerText = '100%';
-      progressStatus.innerText = '모든 텔레메트리 영수증 파싱 완료';
+      progressStatus.innerText = '모든 텔레메트리 영수증 파싱 및 DB 저장 완료';
       setTimeout(() => progressContainer.classList.add('hidden'), 2000);
 
+      renderMonthTabs();
       renderTable();
     }
 
@@ -465,60 +537,174 @@
       }
     }
 
+    function renderMonthTabs() {
+      const container = document.getElementById('monthTabsContainer');
+      const stats = document.getElementById('monthStatsText');
+      if (!container) return;
+
+      const monthCounts = {};
+      const monthSums = {};
+      for (let m = 1; m <= 12; m++) {
+        monthCounts[m] = 0;
+        monthSums[m] = 0;
+      }
+      let totalAllSum = 0;
+
+      records.forEach(r => {
+        const amt = Number(r.amount) || 0;
+        totalAllSum += amt;
+        if (r.date) {
+          const parts = r.date.split('-');
+          if (parts.length >= 2) {
+            const m = parseInt(parts[1], 10);
+            if (m >= 1 && m <= 12) {
+              monthCounts[m]++;
+              monthSums[m] += amt;
+            }
+          }
+        }
+      });
+
+      const tabs = [
+        { key: 'ALL', label: '전체', count: records.length, sum: totalAllSum },
+        ...Array.from({ length: 12 }, (_, i) => ({
+          key: String(i + 1),
+          label: `${i + 1}월`,
+          count: monthCounts[i + 1],
+          sum: monthSums[i + 1]
+        }))
+      ];
+
+      container.innerHTML = tabs.map(t => {
+        const isActive = currentMonthFilter === t.key;
+        const activeClass = isActive 
+          ? 'bg-yds-pineTeal-600 text-white font-bold shadow-2xs border-yds-pineTeal-700' 
+          : 'bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border hover:border-yds-borderStrong';
+        const badgeClass = isActive ? 'bg-white/20 text-white' : 'bg-yds-ivory text-yds-ink-600 border border-yds-border';
+
+        return `
+          <button onclick="setMonthFilter('${t.key}')" class="px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeClass}">
+            <span>${t.label}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${badgeClass}">${t.count}</span>
+          </button>
+        `;
+      }).join('');
+
+      const currentTab = tabs.find(t => t.key === currentMonthFilter) || tabs[0];
+      stats.innerHTML = `<span class="text-yds-ink-500 font-normal">[${currentTab.label}]</span> <span class="text-yds-ink-800">${currentTab.count}건</span> | <span class="text-yds-pineTeal-600 font-bold">${currentTab.sum.toLocaleString()}원</span>`;
+    }
+
+    function setMonthFilter(monthKey) {
+      currentMonthFilter = monthKey;
+      renderMonthTabs();
+      renderTable();
+    }
+
+    function getFilteredRecords() {
+      if (currentMonthFilter === 'ALL') return records;
+      return records.filter(r => {
+        if (!r.date) return false;
+        const parts = r.date.split('-');
+        if (parts.length >= 2) {
+          return parseInt(parts[1], 10) === parseInt(currentMonthFilter, 10);
+        }
+        return false;
+      });
+    }
+
     function renderTable() {
       const tbody = document.getElementById('receiptTableBody');
       const countBadge = document.getElementById('receiptCountBadge');
       const summaryText = document.getElementById('totalSummaryText');
 
-      countBadge.innerText = `${records.length} 건 등록`;
+      countBadge.innerText = `${records.length} 건 등록 (DB 보존)`;
 
-      if (records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-yds-ink-400 font-mono">NO RECEIPTS INGESTED. DRAG & DROP EVIDENCE FILES ABOVE.</td></tr>`;
-        summaryText.innerText = '총 0건 | 합계: 0원';
+      const filtered = getFilteredRecords();
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="py-12 text-center text-yds-ink-400 font-mono">해당 월에 등록된 영수증이 없습니다. 상단에서 파일을 드래그/붙여넣기하거나 [+ 수기 행 추가]를 클릭하세요.</td></tr>`;
+        summaryText.innerText = `전체 ${records.length}건 | 합계: ${records.reduce((acc, r) => acc + (Number(r.amount) || 0), 0).toLocaleString()}원`;
         return;
       }
 
       let totalSum = 0;
-      tbody.innerHTML = records.map((r, i) => {
+      tbody.innerHTML = filtered.map((r, i) => {
         const amt = Number(r.amount) || 0;
         totalSum += amt;
         const sup = Number(r.supplyAmount) || Math.round(amt / 1.1);
         const tax = Number(r.tax) || (amt - sup);
+        const qty = Number(r.quantity) || 1;
+
+        // Group church codes by category
+        const categories = {};
+        churchCodes.forEach(c => {
+          if (!categories[c.category]) categories[c.category] = [];
+          categories[c.category].push(c);
+        });
+
+        const currentCode = r.code || 'H04';
+        let optionsHtml = '';
+        Object.entries(categories).forEach(([cat, items]) => {
+          optionsHtml += `<optgroup label="${cat}">`;
+          items.forEach(c => {
+            const isSelected = c.code === currentCode;
+            optionsHtml += `<option value="${c.code}" ${isSelected ? 'selected' : ''}>[${c.code}] ${c.label}</option>`;
+          });
+          optionsHtml += `</optgroup>`;
+        });
 
         return `
           <tr class="hover:bg-yds-canvas transition-colors">
-            <td class="py-2.5 px-4 text-center font-mono text-yds-ink-400 font-medium">${String(i + 1).padStart(2, '0')}</td>
-            <td class="py-2.5 px-4">
-              <input type="date" value="${r.date || ''}" onchange="updateRecord(${i}, 'date', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3 text-center font-mono text-yds-ink-400 font-medium">${String(i + 1).padStart(2, '0')}</td>
+            <td class="py-2.5 px-3">
+              <input type="date" value="${r.date || ''}" onchange="updateRecordField('${r.id}', 'date', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
             </td>
-            <td class="py-2.5 px-4">
-              <input type="text" value="${r.merchant || ''}" onchange="updateRecord(${i}, 'merchant', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-sans focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3">
+              <input type="text" value="${r.merchant || ''}" onchange="handleItemOrMerchantChange('${r.id}', 'merchant', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-sans focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs" placeholder="가맹점">
             </td>
-            <td class="py-2.5 px-4">
-              <input type="text" value="${r.items || ''}" onchange="updateRecord(${i}, 'items', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-sans focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3">
+              <input type="text" value="${r.items || ''}" onchange="handleItemOrMerchantChange('${r.id}', 'items', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-sans focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs" placeholder="구입 품목">
             </td>
-            <td class="py-2.5 px-4">
-              <select onchange="updateRecord(${i}, 'paymentMethod', this.value)" class="bg-white border border-yds-borderStrong rounded px-1.5 py-1 text-yds-ink-900 text-xs w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-2 text-center">
+              <input type="number" min="1" value="${qty}" onchange="updateRecordField('${r.id}', 'quantity', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-1.5 py-1 text-yds-ink-900 text-xs text-center w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            </td>
+            <td class="py-2.5 px-3">
+              <select onchange="updateRecordField('${r.id}', 'code', this.value)" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs w-full font-sans focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs font-medium">
+                ${optionsHtml}
+              </select>
+            </td>
+            <td class="py-2.5 px-2">
+              <select onchange="updateRecordField('${r.id}', 'paymentMethod', this.value)" class="bg-white border border-yds-borderStrong rounded px-1 py-1 text-yds-ink-900 text-xs w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
                 <option value="카드" ${r.paymentMethod === '카드' ? 'selected' : ''}>카드</option>
                 <option value="현금" ${r.paymentMethod === '현금' ? 'selected' : ''}>현금</option>
                 <option value="계좌이체" ${r.paymentMethod === '계좌이체' ? 'selected' : ''}>계좌이체</option>
                 <option value="기타" ${r.paymentMethod === '기타' ? 'selected' : ''}>기타</option>
               </select>
             </td>
-            <td class="py-2.5 px-4 text-right">
-              <input type="number" value="${sup}" onchange="updateRecord(${i}, 'supplyAmount', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" value="${sup}" onchange="updateRecordField('${r.id}', 'supplyAmount', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
             </td>
-            <td class="py-2.5 px-4 text-right">
-              <input type="number" value="${tax}" onchange="updateRecord(${i}, 'tax', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" value="${tax}" onchange="updateRecordField('${r.id}', 'tax', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 text-yds-ink-900 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
             </td>
-            <td class="py-2.5 px-4 text-right">
-              <input type="number" value="${amt}" onchange="updateRecord(${i}, 'amount', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 font-bold text-yds-pineTeal-600 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" value="${amt}" onchange="updateAmount('${r.id}', Number(this.value))" class="bg-white border border-yds-borderStrong rounded px-2 py-1 font-bold text-yds-pineTeal-600 text-xs text-right w-full font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
             </td>
-            <td class="py-2.5 px-4 text-center">
-              ${r.filePath ? `<button onclick="viewImage('${r.filePath}')" class="px-2 py-1 text-xs rounded bg-yds-ivory hover:bg-[#EAE4DC] text-yds-pineTeal-700 border border-yds-borderStrong shadow-2xs" title="증빙 보기"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>` : '-'}
+            <td class="py-2.5 px-2 text-center">
+              ${r.filePath ? `
+                <div class="flex items-center justify-center gap-1">
+                  <button onclick="viewImage('${r.filePath}')" class="px-2 py-1 text-xs rounded bg-yds-ivory hover:bg-[#EAE4DC] text-yds-pineTeal-700 border border-yds-borderStrong shadow-2xs" title="증빙 사진 크게보기"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>
+                  <button onclick="attachImageToRow('${r.id}')" class="px-1 py-1 text-xs rounded hover:bg-yds-canvas text-yds-ink-500 border border-transparent hover:border-yds-border" title="사진 변경"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
+                </div>
+              ` : `
+                <button onclick="attachImageToRow('${r.id}')" class="px-2 py-1 text-[11px] font-mono rounded bg-white hover:bg-yds-ivory text-yds-pineTeal-700 border border-dashed border-yds-borderStrong hover:border-yds-pineTeal-500 shadow-2xs flex items-center gap-1 mx-auto" title="영수증 사진 첨부">
+                  <i data-lucide="image-plus" class="w-3 h-3"></i>
+                  <span>사진</span>
+                </button>
+              `}
             </td>
-            <td class="py-2.5 px-4 text-center">
-              <button onclick="deleteRecord(${i})" class="text-yds-ink-400 hover:text-rose-600 transition-colors" title="삭제">
+            <td class="py-2.5 px-2 text-center">
+              <button onclick="deleteRecord('${r.id}')" class="text-yds-ink-400 hover:text-rose-600 transition-colors" title="삭제">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </td>
@@ -526,31 +712,182 @@
         `;
       }).join('');
 
-      summaryText.innerText = `총 ${records.length}건 | 합계: ${totalSum.toLocaleString()}원`;
+      summaryText.innerText = `전체 ${records.length}건 | 합계: ${records.reduce((acc, r) => acc + (Number(r.amount) || 0), 0).toLocaleString()}원`;
       lucide.createIcons();
     }
 
-    function updateRecord(index, key, value) {
-      if (records[index]) {
-        records[index][key] = value;
+    async function updateRecordField(id, field, value) {
+      const rec = records.find(r => r.id === id);
+      if (rec) {
+        rec[field] = value;
+        if (field === 'code') {
+          const found = churchCodes.find(c => c.code === value);
+          if (found) rec.codeLabel = found.label;
+        }
+        renderMonthTabs();
+        await fetch(`/api/receipts/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value, codeLabel: rec.codeLabel })
+        });
       }
     }
 
-    function deleteRecord(index) {
-      records.splice(index, 1);
-      renderTable();
+    async function updateAmount(id, amt) {
+      const rec = records.find(r => r.id === id);
+      if (rec) {
+        rec.amount = amt;
+        rec.supplyAmount = Math.round(amt / 1.1);
+        rec.tax = amt - rec.supplyAmount;
+        renderMonthTabs();
+        renderTable();
+        await fetch(`/api/receipts/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: rec.amount,
+            supplyAmount: rec.supplyAmount,
+            tax: rec.tax
+          })
+        });
+      }
     }
 
-    function clearAll() {
-      if (confirm('모든 텔레메트리 영수증 내역을 초기화하시겠습니까?')) {
-        records = [];
+    async function handleItemOrMerchantChange(id, field, value) {
+      const rec = records.find(r => r.id === id);
+      if (!rec) return;
+      rec[field] = value;
+
+      try {
+        const res = await fetch('/api/church/recommend-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ merchant: rec.merchant, items: rec.items, memo: rec.memo })
+        });
+        const reco = await res.json();
+        if (reco && reco.code) {
+          rec.code = reco.code;
+          rec.codeLabel = reco.label;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      renderTable();
+      await fetch(`/api/receipts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rec)
+      });
+    }
+
+    async function addManualRow() {
+      const res = await fetch('/api/receipts/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date().toISOString().split('T')[0],
+          merchant: '',
+          items: '',
+          quantity: 1,
+          amount: 0,
+          paymentMethod: '카드'
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.record) {
+        records.push(data.record);
+        renderMonthTabs();
         renderTable();
       }
     }
 
+    async function deleteRecord(id) {
+      if (!confirm('이 영수증 내역을 삭제하시겠습니까?')) return;
+      await fetch(`/api/receipts/${id}`, { method: 'DELETE' });
+      records = records.filter(r => r.id !== id);
+      renderMonthTabs();
+      renderTable();
+    }
+
+    async function clearAll() {
+      if (!confirm('모든 텔레메트리 영수증 내역을 DB에서 영구 삭제하시겠습니까?')) return;
+      await fetch('/api/receipts/clear', { method: 'POST' });
+      records = [];
+      renderMonthTabs();
+      renderTable();
+    }
+
     function sortByDate() {
       records.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      renderMonthTabs();
       renderTable();
+    }
+
+    let targetRowIdForImage = null;
+    function attachImageToRow(id) {
+      targetRowIdForImage = id;
+      document.getElementById('rowImageFileInput').click();
+    }
+
+    async function handleRowImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !targetRowIdForImage) return;
+
+      const formData = new FormData();
+      formData.append('receipt', file);
+
+      try {
+        const res = await fetch('/api/receipts/parse', { method: 'POST', body: formData });
+        const resData = await res.json();
+        if (resData.success) {
+          const rec = records.find(r => r.id === targetRowIdForImage);
+          if (rec) {
+            rec.filePath = resData.file.path;
+            rec.fileName = resData.file.originalName;
+            if (!rec.merchant && resData.data.merchant) rec.merchant = resData.data.merchant;
+            if (!rec.amount && resData.data.amount) {
+              rec.amount = resData.data.amount;
+              rec.supplyAmount = resData.data.supplyAmount;
+              rec.tax = resData.data.tax;
+            }
+            if (!rec.items && resData.data.items) rec.items = resData.data.items;
+            if (resData.data.code) {
+              rec.code = resData.data.code;
+              rec.codeLabel = resData.data.codeLabel;
+            }
+
+            await fetch(`/api/receipts/${rec.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(rec)
+            });
+          }
+          renderMonthTabs();
+          renderTable();
+        }
+      } catch (err) {
+        alert('이미지 첨부 실패: ' + err.message);
+      } finally {
+        e.target.value = '';
+        targetRowIdForImage = null;
+      }
+    }
+
+    async function shutdownApp() {
+      if (!confirm('Receipt Ledger 프로그램과 백그라운드 서버를 완전히 종료하시겠습니까?')) return;
+      try {
+        await fetch('/api/shutdown', { method: 'POST' });
+        document.body.innerHTML = `
+          <div style="display:flex;height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:sans-serif;color:#475569;background:#f8fafc;">
+            <div style="font-size:18px;font-weight:bold;color:#0f172a;">Receipt Ledger가 안전하게 종료되었습니다.</div>
+            <div style="font-size:13px;color:#64748b;">창을 닫으셔도 좋습니다.</div>
+          </div>
+        `;
+        setTimeout(() => window.close(), 600);
+      } catch (e) {
+        window.close();
+      }
     }
 
     function openConfigModal() { document.getElementById('configModal').classList.remove('hidden'); }
@@ -644,6 +981,48 @@
       a.href = url;
       a.download = `감사증빙보고서_${new Date().toISOString().split('T')[0]}.pptx`;
       a.click();
+    }
+
+    async function exportChurchExcel() {
+      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
+
+      try {
+        const res = await fetch('/api/export/church-excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records })
+        });
+        if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `2026_유년부_회계장부_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+      } catch (err) {
+        alert('교회 회계장부 다운로드 실패: ' + err.message);
+      }
+    }
+
+    async function exportChurchPPTX() {
+      if (records.length === 0) return alert('내보낼 영수증 내역이 없습니다.');
+
+      try {
+        const res = await fetch('/api/export/church-pptx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records })
+        });
+        if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `감사준비_출력용_4분할_${new Date().toISOString().split('T')[0]}.pptx`;
+        a.click();
+      } catch (err) {
+        alert('감사 4분할 PPTX 다운로드 실패: ' + err.message);
+      }
     }
   </script>
 </body>
