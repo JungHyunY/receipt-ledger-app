@@ -203,8 +203,8 @@ async function runMigration() {
   const data2021 = await extract2021Xlsx();
   xlsData[2021] = data2021;
 
-  const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
-  console.log(`Starting DB transaction for ${years.length} years (2019-2025)...`);
+  const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  console.log(`Starting DB transaction for ${years.length} years (2019-2026)...`);
 
   const insertBudgetStmt = db.prepare(`
     INSERT OR REPLACE INTO budget_items (year, code, code_label, category, amount, memo)
