@@ -4,7 +4,12 @@ const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
 
-// Start express app in-process on test port 3989
+// Isolate database for tests so production receipts.db is never polluted
+const testDbPath = path.join(__dirname, 'data', 'receipts_test.db');
+if (fs.existsSync(testDbPath)) {
+  try { fs.unlinkSync(testDbPath); } catch (e) {}
+}
+process.env.DB_PATH = testDbPath;
 process.env.PORT = '3989';
 const app = require('./server/index');
 
@@ -169,6 +174,9 @@ async function runE2ETests() {
     process.exitCode = 1;
   } finally {
     if (server) server.close();
+    try {
+      if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath);
+    } catch (e) {}
     process.exit();
   }
 }

@@ -281,6 +281,36 @@ app.post('/api/church/recommend-code', (req, res) => {
 });
 
 // 2-3. Annual Budget Management Endpoints
+app.post('/api/budget/apply-plan', (req, res) => {
+  try {
+    const { year, items } = req.body;
+    if (!year || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'year와 items 배열이 필요합니다.' });
+    }
+    const normalized = items.map(i => ({
+      code: i.code,
+      codeLabel: i.codeLabel,
+      category: i.category,
+      amount: i.amount !== undefined ? i.amount : (i.proposedAmount || 0),
+      memo: i.memo || ''
+    }));
+    const saved = saveBudgetItems(year, normalized);
+    res.json({ success: true, year, items: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/budget/simulate/:year', (req, res) => {
+  try {
+    const growthRate = parseFloat(req.query.growthRate) || 0;
+    const simulation = simulateNextYearBudget(req.params.year, growthRate);
+    res.json(simulation);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/budget/:year', (req, res) => {
   try {
     const summary = getBudgetSummary(req.params.year);
@@ -298,29 +328,6 @@ app.post('/api/budget/:year', (req, res) => {
     }
     const saved = saveBudgetItems(req.params.year, items);
     res.json({ success: true, items: saved });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/budget/simulate/:year', (req, res) => {
-  try {
-    const growthRate = parseFloat(req.query.growthRate) || 0;
-    const simulation = simulateNextYearBudget(req.params.year, growthRate);
-    res.json(simulation);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/budget/apply-plan', (req, res) => {
-  try {
-    const { year, items } = req.body;
-    if (!year || !Array.isArray(items)) {
-      return res.status(400).json({ error: 'year와 items 배열이 필요합니다.' });
-    }
-    const saved = saveBudgetItems(year, items);
-    res.json({ success: true, year, items: saved });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

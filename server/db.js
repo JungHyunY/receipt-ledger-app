@@ -7,7 +7,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const DB_PATH = path.join(DATA_DIR, 'receipts.db');
+const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'receipts.db');
 const db = new DatabaseSync(DB_PATH);
 
 // Initialize Tables
@@ -247,12 +247,13 @@ function saveBudgetItems(year, items) {
   `);
 
   items.forEach(item => {
+    const amt = item.amount !== undefined ? item.amount : (item.budgetAmount !== undefined ? item.budgetAmount : item.proposedAmount);
     upsert.run(
       y,
       item.code,
       item.codeLabel || '',
       item.category || '',
-      Number(item.amount) || 0,
+      Number(amt) || 0,
       item.memo || ''
     );
   });
