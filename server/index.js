@@ -26,7 +26,8 @@ const {
   deleteIncome,
   getIncomeSummary,
   exportDatabaseBackup,
-  restoreDatabaseBackup
+  restoreDatabaseBackup,
+  getMultiYearAnalytics
 } = require('./db');
 
 const app = express();
@@ -590,6 +591,198 @@ app.get('/api/budget/simulate/:year/export-excel', async (req, res) => {
     res.download(exportPath, fileName);
   } catch (err) {
     console.error('예산기획안 엑셀 내보내기 실패:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------
+// Multi-Year Analytics & Audit Reports (다개년 통계 및 감사결산 대조)
+// ----------------------------------------------------
+app.get('/api/analytics/multi-year', (req, res) => {
+  try {
+    const data = getMultiYearAnalytics();
+    res.json(data);
+  } catch (err) {
+    console.error('다개년 통계 분석 조회 실패:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/analytics/multi-year/export-excel', async (req, res) => {
+  try {
+    const analytics = getMultiYearAnalytics();
+    const workbook = new ExcelJS.Workbook();
+
+    // Sheet 1: 7-Year Category Audit Comparison (과목별 7개년 결산 대조표)
+    const ws1 = workbook.addWorksheet('7개년_과목별_결산대조표');
+    
+    // Title
+    ws1.mergeCells('A1:R1');
+    const tCell = ws1.getCell('A1');
+    tCell.value = '교회 유년부 7개년(2019~2025) 회계 결산 및 실집행 비교 대조표 (감사/보고용)';
+    tCell.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF004D40' } };
+    tCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws1.getRow(1).height = 32;
+
+    ws1.mergeCells('A2:R2');
+    const stCell = ws1.getCell('A2');
+    stCell.value = `7개년 총 지출: ${analytics.metrics.total7YearsSpent.toLocaleString()}원 | 연평균 지출: ${analytics.metrics.avgAnnualSpent.toLocaleString()}원 | 평균 집행률: ${analytics.metrics.avgBurnRate}% | 2026년 본예산: 9,000,000원`;
+    stCell.font = { name: '맑은 고딕', size: 10, color: { argb: 'FF45403C' } };
+    stCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws1.getRow(2).height = 20;
+
+    // Header structure
+    // Row 4: Merged year headers
+    // Row 5: Sub-headers (예산, 실집행)
+    const h1 = ws1.getRow(4);
+    const h2 = ws1.getRow(5);
+    h1.height = 20;
+    h2.height = 22;
+
+    ws1.mergeCells('A4:A5'); ws1.getCell('A4').value = '코드';
+    ws1.mergeCells('B4:B5'); ws1.getCell('B4').value = '분류';
+    ws1.mergeCells('C4:C5'); ws1.getCell('C4').value = '과목명';
+
+    let col = 4;
+    const histYears = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+    histYears.forEach(y => {
+      const c1 = col;
+      const c2 = col + 1;
+      ws1.mergeCells(4, c1, 4, c2);
+      const yearCell = ws1.getCell(4, c1);
+      yearCell.value = `${y}년도`;
+      yearCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      yearCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF005A4E' } };
+      yearCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      const bCell = ws1.getCell(5, c1);
+      bCell.value = '예산';
+      bCell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      bCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D7668' } };
+      bCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      const sCell = ws1.getCell(5, c2);
+      sCell.value = '실집행';
+      sCell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      sCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF148C7B' } };
+      sCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      col += 2;
+    });
+
+    ws1.mergeCells('R4:R5'); ws1.getCell('R4').value = '7개년 평균실집행';
+    ws1.mergeCells('S4:S5'); ws1.getCell('S4').value = '2026년 예산';
+
+    ['A4', 'B4', 'C4', 'R4', 'S4'].forEach(addr => {
+      const cell = ws1.getCell(addr);
+      cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D40' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+
+    // Populate Category rows
+    let rowNum = 6;
+    analytics.categoryTrends.forEach(item => {
+      const row = ws1.getRow(rowNum++);
+      row.getCell(1).value = item.code;
+      row.getCell(2).value = item.category;
+      row.getCell(3).value = item.label;
+
+      let c = 4;
+      histYears.forEach(y => {
+        row.getCell(c).value = item.yearlyBudget[y] || 0;
+        row.getCell(c).numFmt = '#,##0';
+        row.getCell(c + 1).value = item.yearlySpent[y] || 0;
+        row.getCell(c + 1).numFmt = '#,##0';
+        c += 2;
+      });
+
+      row.getCell(18).value = item.avgSpent;
+      row.getCell(18).numFmt = '#,##0';
+      row.getCell(18).font = { bold: true, color: { argb: 'FFB45309' } };
+
+      row.getCell(19).value = item.yearlyBudget[2026] || 0;
+      row.getCell(19).numFmt = '#,##0';
+      row.getCell(19).font = { bold: true, color: { argb: 'FF047857' } };
+
+      for (let i = 1; i <= 19; i++) {
+        row.getCell(i).border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+      }
+    });
+
+    ws1.getColumn(1).width = 8;
+    ws1.getColumn(2).width = 16;
+    ws1.getColumn(3).width = 24;
+    for (let c = 4; c <= 17; c++) ws1.getColumn(c).width = 13;
+    ws1.getColumn(18).width = 16;
+    ws1.getColumn(19).width = 16;
+
+    // Sheet 2: Annual Summary Matrix (연도별 결산 총괄)
+    const ws2 = workbook.addWorksheet('연도별_결산총괄');
+    ws2.addRow(['연도', '예산총액(원)', '실지출총액(원)', '수입총액(원)', '결산잔액(원)', '예산집행률(%)', '비고']);
+    ws2.getRow(1).font = { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' } };
+    ws2.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D40' } };
+    ws2.getRow(1).height = 24;
+
+    analytics.annualSummaries.forEach(a => {
+      const r = ws2.addRow([
+        `${a.year}년`,
+        a.budget,
+        a.spent,
+        a.income,
+        a.balance,
+        `${a.burnRate}%`,
+        a.year === 2026 ? '당해년도 진행중' : '결산완료'
+      ]);
+      r.getCell(2).numFmt = '#,##0';
+      r.getCell(3).numFmt = '#,##0';
+      r.getCell(4).numFmt = '#,##0';
+      r.getCell(5).numFmt = '#,##0';
+    });
+
+    for (let c = 1; c <= 7; c++) ws2.getColumn(c).width = 18;
+
+    // Sheet 3: Monthly Seasonality (월별 지출 계절성 분석)
+    const ws3 = workbook.addWorksheet('월별_지출패턴_분석');
+    ws3.addRow(['월', '7개년 누적 지출액(원)', '월평균 지출액(원)', '연간 지출 비중(%)', '집중 행사/특이사항']);
+    ws3.getRow(1).font = { name: '맑은 고딕', bold: true, color: { argb: 'FFFFFFFF' } };
+    ws3.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D40' } };
+    ws3.getRow(1).height = 24;
+
+    const total7Y = analytics.metrics.total7YearsSpent || 1;
+    analytics.monthlySeasonality.forEach(m => {
+      const pct = Math.round((m.totalSpent / total7Y) * 1000) / 10;
+      let note = '-';
+      if (m.month === 12) note = '성탄절, 연말결산, 연말시상 피크';
+      else if (m.month === 6) note = '상반기 달란트잔치, 여름성경학교 준비 피크';
+      else if (m.month === 7) note = '여름성경학교 집중 지출';
+      else if (m.month === 11) note = '추수감사절, 하반기 달란트잔치';
+      else if (m.month === 4 || m.month === 5) note = '어린이주일, 부활절, 야외예배';
+
+      const r = ws3.addRow([
+        m.monthLabel,
+        m.totalSpent,
+        m.avgSpent,
+        `${pct}%`,
+        note
+      ]);
+      r.getCell(2).numFmt = '#,##0';
+      r.getCell(3).numFmt = '#,##0';
+    });
+
+    for (let c = 1; c <= 5; c++) ws3.getColumn(c).width = 22;
+
+    const fileName = `유년부_7개년_회계결산_비교대조표_${Date.now()}.xlsx`;
+    const exportPath = path.join(__dirname, '..', 'uploads', fileName);
+    await workbook.xlsx.writeFile(exportPath);
+    res.download(exportPath, fileName);
+  } catch (err) {
+    console.error('7개년 회계 결산 대조표 엑셀 생성 실패:', err);
     res.status(500).json({ error: err.message });
   }
 });

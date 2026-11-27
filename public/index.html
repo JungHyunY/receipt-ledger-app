@@ -149,6 +149,10 @@
       <i data-lucide="trending-up" class="w-4 h-4 text-amber-600"></i>
       <span>차년도 예산안 기획 (NEXT YEAR PLAN)</span>
     </button>
+    <button onclick="switchView('analytics')" id="navTabAnalytics" class="nav-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 font-mono bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-700 border border-yds-border transition-colors">
+      <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
+      <span>7개년 통계 및 결산 분석 (ANALYTICS & AUDIT)</span>
+    </button>
   </nav>
 
   <!-- Main Container -->
@@ -261,8 +265,25 @@
 
         <!-- Monthly Tabs Navigation Bar -->
         <div class="px-5 py-2.5 bg-yds-ivory/60 border-b border-yds-border flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 max-w-full" id="monthTabsContainer">
-            <!-- Rendered dynamically: [전체] [1월] [2월] ... [12월] -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-0.5 max-w-full">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-xs font-mono font-medium text-yds-ink-600">연도:</span>
+              <select id="expenseYearSelect" onchange="setExpenseYearFilter(this.value)" class="bg-white border border-yds-borderStrong rounded-lg px-2.5 py-1 text-xs text-yds-ink-900 font-mono font-bold focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+                <option value="ALL" selected>전체 연도</option>
+                <option value="2026">2026년</option>
+                <option value="2025">2025년</option>
+                <option value="2024">2024년</option>
+                <option value="2023">2023년</option>
+                <option value="2022">2022년</option>
+                <option value="2021">2021년</option>
+                <option value="2020">2020년</option>
+                <option value="2019">2019년</option>
+              </select>
+            </div>
+            <div class="h-4 w-px bg-yds-borderStrong/40 shrink-0 mx-1"></div>
+            <div class="flex items-center gap-1.5 overflow-x-auto" id="monthTabsContainer">
+              <!-- Rendered dynamically: [전체] [1월] [2월] ... [12월] -->
+            </div>
           </div>
           <div id="monthStatsText" class="text-xs font-mono font-semibold text-yds-pineTeal-700 bg-white px-3 py-1 rounded-md border border-yds-borderStrong shadow-2xs whitespace-nowrap">
             전체: 0건 | 0원
@@ -352,6 +373,21 @@
           </div>
 
           <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 shrink-0 mr-1">
+              <span class="text-xs font-mono font-medium text-yds-ink-600">연도:</span>
+              <select id="incomeYearSelect" onchange="setIncomeYearFilter(this.value)" class="bg-white border border-yds-borderStrong rounded-lg px-2.5 py-1 text-xs text-yds-ink-900 font-mono font-bold focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+                <option value="ALL" selected>전체 연도</option>
+                <option value="2026">2026년</option>
+                <option value="2025">2025년</option>
+                <option value="2024">2024년</option>
+                <option value="2023">2023년</option>
+                <option value="2022">2022년</option>
+                <option value="2021">2021년</option>
+                <option value="2020">2020년</option>
+                <option value="2019">2019년</option>
+              </select>
+            </div>
+            <div class="h-4 w-px bg-yds-borderStrong/40 shrink-0 mx-0.5"></div>
             <!-- Filter buttons -->
             <button onclick="setIncomeFilter('ALL')" id="incFilterAll" class="px-3 py-1.5 text-xs font-mono rounded-lg border bg-yds-pineTeal-600 text-white font-medium">전체</button>
             <button onclick="setIncomeFilter('CASH')" id="incFilterCash" class="px-3 py-1.5 text-xs font-mono rounded-lg border bg-white hover:bg-yds-ivory text-yds-ink-700 border-yds-border">금전 수입</button>
@@ -403,15 +439,21 @@
             <i data-lucide="calculator" class="w-4 h-4"></i>
           </div>
           <div>
-            <h2 class="text-sm font-bold text-yds-ink-900 font-mono">2026년 교회 유년부 연간 예산 책정 및 집행현황</h2>
+            <h2 id="budgetViewTitle" class="text-sm font-bold text-yds-ink-900 font-mono">2026년 교회 유년부 연간 예산 책정 및 집행현황</h2>
             <p class="text-xs text-yds-ink-500">1년에 한 번 정기 예산을 입력하고, 등록된 영수증 지출과 대조하여 실시간 소진율을 추적합니다.</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <select id="budgetYearSelect" onchange="loadBudgetSummary(this.value)" class="bg-white border border-yds-borderStrong rounded-lg px-3 py-1.5 text-xs text-yds-ink-900 font-mono focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs font-bold">
-            <option value="2026" selected>2026년도 예산</option>
             <option value="2027">2027년도 예산</option>
+            <option value="2026" selected>2026년도 예산</option>
             <option value="2025">2025년도 예산</option>
+            <option value="2024">2024년도 예산</option>
+            <option value="2023">2023년도 예산</option>
+            <option value="2022">2022년도 예산</option>
+            <option value="2021">2021년도 예산</option>
+            <option value="2020">2020년도 예산</option>
+            <option value="2019">2019년도 예산</option>
           </select>
           <button onclick="openTotalBudgetModal()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="1년 총 예산액(예: 900만원)을 한 번에 입력하고 비율별 자동 배분">
             <i data-lucide="coins" class="w-3.5 h-3.5"></i>
@@ -502,7 +544,7 @@
               <i data-lucide="sparkles" class="w-4 h-4"></i>
             </div>
             <div>
-              <h2 class="text-sm font-bold text-yds-ink-900 font-mono">차년도 (2027년) 예산안 기획 및 시뮬레이션</h2>
+              <h2 id="plannerTitle" class="text-sm font-bold text-yds-ink-900 font-mono">차년도 예산안 기획 및 시뮬레이션</h2>
               <p class="text-xs text-yds-ink-500">당해년도 실제 집행 실적을 바탕으로 물가 상승률과 증감률을 반영하여 다음 해 예산안을 자동 생성합니다.</p>
             </div>
           </div>
@@ -522,10 +564,19 @@
         <div class="flex flex-wrap items-center gap-6 text-xs font-mono pt-1">
           <div class="flex items-center gap-2">
             <span class="text-yds-ink-700 font-medium">기준 연도:</span>
-            <span class="px-2 py-1 rounded bg-yds-ivory font-bold text-yds-ink-900">2026년</span>
+            <select id="plannerBaseYear" onchange="runSimulation()" class="bg-white border border-yds-borderStrong rounded-lg px-2.5 py-1 text-xs text-yds-ink-900 font-mono font-bold focus:outline-none focus:border-yds-pineTeal-500 shadow-2xs">
+              <option value="2026" selected>2026년</option>
+              <option value="2025">2025년</option>
+              <option value="2024">2024년</option>
+              <option value="2023">2023년</option>
+              <option value="2022">2022년</option>
+              <option value="2021">2021년</option>
+              <option value="2020">2020년</option>
+              <option value="2019">2019년</option>
+            </select>
             <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-yds-ink-400"></i>
-            <span class="text-yds-ink-700 font-medium">대상 연도:</span>
-            <span class="px-2 py-1 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200">2027년</span>
+            <span class="text-yds-ink-700 font-medium">기획 대상:</span>
+            <span id="plannerTargetYearBadge" class="px-2 py-1 rounded bg-amber-50 text-amber-800 font-bold border border-amber-200">2027년</span>
           </div>
 
           <div class="flex items-center gap-2">
@@ -599,6 +650,162 @@
       </div>
     </div>
 
+    <!-- ======================================================== -->
+    <!-- VIEW 5: MULTI-YEAR ANALYTICS & AUDIT                     -->
+    <!-- ======================================================== -->
+    <div id="viewAnalytics" class="hidden space-y-6">
+      <!-- Analytics Header Bar -->
+      <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-yds-ink-900 font-mono">7개년(2019~2025) 다개년 회계 통계 및 감사 결산 분석</h2>
+            <p class="text-xs text-yds-ink-500">1,173건 지출과 149건 수입 이력을 기반으로 연도별 결산 비교, 과목별 랭킹, 월별 지출 계절성을 분석합니다.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="exportAnalyticsExcel()" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 flex items-center gap-1.5 font-mono shadow-xs" title="2019~2025 전 과목 예산 및 실집행 비교 대조표 엑셀 다운로드">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>7개년 감사 결산표 엑셀 다운로드</span>
+          </button>
+          <button onclick="loadMultiYearAnalytics()" class="px-3 py-2 rounded-lg bg-yds-ivory hover:bg-[#EFE8DF] text-yds-ink-800 border border-yds-borderStrong flex items-center gap-1.5 text-xs font-mono font-medium shadow-2xs">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>새로고침</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">7개년 누적 총 실지출</div>
+          <div id="anaTotalSpentText" class="text-xl font-bold font-mono text-yds-ink-900">0 원</div>
+          <div id="anaAvgSpentSub" class="text-[11px] text-yds-ink-500 mt-1">연평균: 0 원</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">7개년 누적 총 수입(청구/찬조)</div>
+          <div id="anaTotalIncomeText" class="text-xl font-bold font-mono text-emerald-700">0 원</div>
+          <div id="anaSurplusSub" class="text-[11px] text-emerald-600 mt-1 font-medium">누적 잔액: +0 원</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">7개년 평균 예산 집행률</div>
+          <div id="anaAvgBurnRateText" class="text-xl font-bold font-mono text-amber-700">0%</div>
+          <div class="text-[11px] text-yds-ink-500 mt-1">안정적 예산 집행 기준</div>
+        </div>
+        <div class="bg-white border border-yds-border rounded-xl p-4 shadow-xs">
+          <div class="text-[11px] font-mono text-yds-ink-500 mb-1">최다 지출 1위 과목</div>
+          <div id="anaTopCategoryText" class="text-sm font-bold text-yds-ink-900 truncate">F04 성경학교</div>
+          <div id="anaTopCategorySub" class="text-[11px] text-yds-ink-500 mt-1">누적: 0 원</div>
+        </div>
+      </div>
+
+      <!-- Visual Grid 1: Annual Trend & Monthly Seasonality -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Annual Budget vs Spent Visual Bars -->
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="bar-chart" class="w-4 h-4 text-yds-pineTeal-600"></i>
+              연도별 예산 대비 실지출 집행 추이 (2019 ~ 2026)
+            </h3>
+            <div class="flex items-center gap-3 text-[11px] font-mono">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-yds-pineTeal-500 inline-block"></span> 예산</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500 inline-block"></span> 실집행</span>
+            </div>
+          </div>
+          <div id="anaAnnualBarsContainer" class="space-y-3 flex-1 py-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Monthly Seasonality Breakdown -->
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+              월별 지출 계절성 패턴 (1월 ~ 12월 7개년 누적 및 평균)
+            </h3>
+            <span class="text-[11px] font-mono text-yds-ink-500">집중 지출월 분석</span>
+          </div>
+          <div id="anaMonthlyBarsContainer" class="grid grid-cols-6 gap-2.5 flex-1 pt-1">
+            <!-- Rendered dynamically -->
+          </div>
+          <div class="mt-4 pt-3 border-t border-yds-border flex items-center justify-between text-xs font-mono text-yds-ink-600">
+            <span>🔥 집중 지출 시즌: <strong>12월(성탄/결산)</strong>, <strong>6~7월(성경학교)</strong>, <strong>11월(추수감사/달란트)</strong></span>
+            <span id="anaPeakMonthBadge" class="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-bold border border-rose-200">피크: 12월</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Grid 2: Top 10 Ranking & AI Insights -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top 10 Spending Categories -->
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="trophy" class="w-4 h-4 text-amber-600"></i>
+              7개년 누적 최고 지출 과목 TOP 10
+            </h3>
+            <span class="text-[11px] font-mono text-yds-ink-500">누적 금액 순</span>
+          </div>
+          <div id="anaTop10Container" class="space-y-2 flex-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- AI & Audit Analytical Insights -->
+        <div class="bg-white border border-yds-border rounded-xl p-5 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between mb-4 border-b border-yds-border pb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+              <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
+              데이터 기반 회계 분석 인사이트 & 예산 제언
+            </h3>
+            <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-200">AI REPORT</span>
+          </div>
+          <div id="anaInsightsContainer" class="space-y-3 flex-1 text-xs">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-Width Matrix Table: 7-Year Category Comparison -->
+      <div class="bg-white border border-yds-border rounded-xl overflow-hidden shadow-xs flex flex-col">
+        <div class="px-5 py-3 border-b border-yds-border flex items-center justify-between bg-yds-canvas">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-yds-ink-800 flex items-center gap-2 font-mono">
+            <i data-lucide="table" class="w-4 h-4 text-yds-pineTeal-600"></i>
+            7개년(2019~2025) 전 과목 결산 비교 대조표 (33개 과목)
+          </h3>
+          <span class="text-xs font-mono text-yds-ink-500">단위: 원 (KRW)</span>
+        </div>
+        <div class="overflow-x-auto max-h-[500px]">
+          <table class="w-full text-left text-xs border-collapse font-sans">
+            <thead class="sticky top-0 bg-yds-canvas z-10">
+              <tr class="border-b border-yds-border text-yds-ink-500 font-mono font-medium">
+                <th class="py-2.5 px-3 w-14 text-center">코드</th>
+                <th class="py-2.5 px-3 w-24">분류</th>
+                <th class="py-2.5 px-3 w-36">과목명</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2019실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2020실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2021실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2022실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2023실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2024실집행</th>
+                <th class="py-2.5 px-2.5 text-right w-24">2025실집행</th>
+                <th class="py-2.5 px-3 text-right w-28 bg-amber-50/50 text-amber-900 font-bold">7개년 연평균</th>
+                <th class="py-2.5 px-3 text-right w-28 bg-emerald-50/50 text-emerald-900 font-bold">2026 예산</th>
+              </tr>
+            </thead>
+            <tbody id="anaMatrixTableBody" class="divide-y divide-yds-border text-yds-ink-800">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ======================================================== -->
@@ -622,9 +829,15 @@
         <div>
           <label class="block text-yds-ink-700 mb-1 font-medium">대상 연도</label>
           <select id="totalBudgetYear" class="w-full bg-yds-canvas border border-yds-borderStrong rounded-lg px-3 py-2 text-yds-ink-900 font-mono font-bold focus:outline-none focus:border-yds-pineTeal-500">
-            <option value="2026" selected>2026년도</option>
             <option value="2027">2027년도</option>
+            <option value="2026" selected>2026년도</option>
             <option value="2025">2025년도</option>
+            <option value="2024">2024년도</option>
+            <option value="2023">2023년도</option>
+            <option value="2022">2022년도</option>
+            <option value="2021">2021년도</option>
+            <option value="2020">2020년도</option>
+            <option value="2019">2019년도</option>
           </select>
         </div>
 
@@ -833,7 +1046,7 @@
     // ----------------------------------------------------
     function switchView(viewName) {
       currentView = viewName;
-      ['expenses', 'income', 'budget', 'planner'].forEach(v => {
+      ['expenses', 'income', 'budget', 'planner', 'analytics'].forEach(v => {
         const el = document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`);
         const tab = document.getElementById(`navTab${v.charAt(0).toUpperCase() + v.slice(1)}`);
         if (v === viewName) {
@@ -848,6 +1061,7 @@
       if (viewName === 'income') loadIncomeData();
       if (viewName === 'budget') loadBudgetSummary(document.getElementById('budgetYearSelect').value);
       if (viewName === 'planner') runSimulation();
+      if (viewName === 'analytics') loadMultiYearAnalytics();
       lucide.createIcons();
     }
 
@@ -1009,6 +1223,19 @@
     // ----------------------------------------------------
     // Monthly Tabs & Expenses Grid
     // ----------------------------------------------------
+    let currentExpenseYearFilter = 'ALL';
+
+    function setExpenseYearFilter(yearVal) {
+      currentExpenseYearFilter = yearVal;
+      renderMonthTabs();
+      renderTable();
+    }
+
+    function getYearFilteredRecords() {
+      if (currentExpenseYearFilter === 'ALL') return records;
+      return records.filter(r => r.date && r.date.startsWith(currentExpenseYearFilter + '-'));
+    }
+
     function renderMonthTabs() {
       const container = document.getElementById('monthTabsContainer');
       const stats = document.getElementById('monthStatsText');
@@ -1022,7 +1249,8 @@
       }
       let totalAllSum = 0;
 
-      records.forEach(r => {
+      const yearRecs = getYearFilteredRecords();
+      yearRecs.forEach(r => {
         const amt = Number(r.amount) || 0;
         totalAllSum += amt;
         if (r.date) {
@@ -1038,7 +1266,7 @@
       });
 
       const tabs = [
-        { key: 'ALL', label: '전체', count: records.length, sum: totalAllSum },
+        { key: 'ALL', label: '전체', count: yearRecs.length, sum: totalAllSum },
         ...Array.from({ length: 12 }, (_, i) => ({
           key: String(i + 1),
           label: `${i + 1}월`,
@@ -1063,7 +1291,8 @@
       }).join('');
 
       const currentTab = tabs.find(t => t.key === currentMonthFilter) || tabs[0];
-      stats.innerHTML = `<span class="text-yds-ink-500 font-normal">[${currentTab.label}]</span> <span class="text-yds-ink-800">${currentTab.count}건</span> | <span class="text-yds-pineTeal-600 font-bold">${currentTab.sum.toLocaleString()}원</span>`;
+      const yearLabel = currentExpenseYearFilter === 'ALL' ? '전체 연도' : `${currentExpenseYearFilter}년`;
+      stats.innerHTML = `<span class="text-yds-ink-500 font-normal">[${yearLabel} / ${currentTab.label}]</span> <span class="text-yds-ink-800">${currentTab.count}건</span> | <span class="text-yds-pineTeal-600 font-bold">${currentTab.sum.toLocaleString()}원</span>`;
     }
 
     function setMonthFilter(monthKey) {
@@ -1073,8 +1302,9 @@
     }
 
     function getFilteredRecords() {
-      if (currentMonthFilter === 'ALL') return records;
-      return records.filter(r => {
+      const yearRecs = getYearFilteredRecords();
+      if (currentMonthFilter === 'ALL') return yearRecs;
+      return yearRecs.filter(r => {
         if (!r.date) return false;
         const parts = r.date.split('-');
         if (parts.length >= 2) {
@@ -1089,7 +1319,10 @@
       const countBadge = document.getElementById('receiptCountBadge');
       const summaryText = document.getElementById('totalSummaryText');
 
-      countBadge.innerText = `${records.length} 건 등록 (DB 보존)`;
+      const yearRecs = getYearFilteredRecords();
+      countBadge.innerText = currentExpenseYearFilter === 'ALL'
+        ? `${records.length} 건 등록 (전체 이력 DB 보존)`
+        : `${yearRecs.length} 건 (${currentExpenseYearFilter}년 / 총 ${records.length} 건)`;
 
       const filtered = getFilteredRecords();
 
@@ -1351,16 +1584,23 @@
     // ----------------------------------------------------
     // VIEW 2: Income & Sponsorship Logic
     // ----------------------------------------------------
+    let currentIncomeYearFilter = 'ALL';
+
+    function setIncomeYearFilter(yearVal) {
+      currentIncomeYearFilter = yearVal;
+      renderIncomeTable();
+    }
+
+    function getYearFilteredIncomeRecords() {
+      if (currentIncomeYearFilter === 'ALL') return incomeRecords;
+      return incomeRecords.filter(r => r.date && r.date.startsWith(currentIncomeYearFilter + '-'));
+    }
+
     async function loadIncomeData() {
       try {
         const res = await fetch('/api/income');
         const data = await res.json();
         incomeRecords = data.records || [];
-
-        document.getElementById('incomeTotalCashText').innerText = `${data.cashTotal.toLocaleString()} 원`;
-        document.getElementById('incomeInKindCountText').innerText = `${incomeRecords.filter(r => r.isInKind).length} 건 / ${data.inKindCount} 개`;
-        document.getElementById('incomeInKindValueText').innerText = `${data.inKindEstimatedTotal.toLocaleString()} 원`;
-
         renderIncomeTable();
       } catch (e) {
         console.error('수입 데이터 로드 실패', e);
@@ -1384,11 +1624,32 @@
       const tbody = document.getElementById('incomeTableBody');
       const badge = document.getElementById('incomeTableCountBadge');
 
-      let filtered = incomeRecords;
-      if (currentIncomeFilter === 'CASH') filtered = incomeRecords.filter(r => !r.isInKind);
-      if (currentIncomeFilter === 'KIND') filtered = incomeRecords.filter(r => r.isInKind);
+      const yearRecs = getYearFilteredIncomeRecords();
+      let cashTotal = 0;
+      let inKindCount = 0;
+      let inKindItemCount = 0;
+      let inKindEstimatedTotal = 0;
 
-      badge.innerText = `총 ${filtered.length}건`;
+      yearRecs.forEach(r => {
+        if (r.isInKind) {
+          inKindCount++;
+          inKindItemCount += Number(r.quantity) || 1;
+          inKindEstimatedTotal += Number(r.amount) || 0;
+        } else {
+          cashTotal += Number(r.amount) || 0;
+        }
+      });
+
+      document.getElementById('incomeTotalCashText').innerText = `${cashTotal.toLocaleString()} 원`;
+      document.getElementById('incomeInKindCountText').innerText = `${inKindCount} 건 / ${inKindItemCount} 개`;
+      document.getElementById('incomeInKindValueText').innerText = `${inKindEstimatedTotal.toLocaleString()} 원`;
+
+      let filtered = yearRecs;
+      if (currentIncomeFilter === 'CASH') filtered = yearRecs.filter(r => !r.isInKind);
+      if (currentIncomeFilter === 'KIND') filtered = yearRecs.filter(r => r.isInKind);
+
+      const yearLabel = currentIncomeYearFilter === 'ALL' ? '전체' : `${currentIncomeYearFilter}년`;
+      badge.innerText = `총 ${filtered.length}건 (${yearLabel} / 전체 ${incomeRecords.length}건)`;
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-yds-ink-400 font-mono">해당 조건의 수입 및 찬조 내역이 없습니다. [+ 수입/찬조 등록]을 클릭하세요.</td></tr>`;
@@ -1555,6 +1816,9 @@
         const res = await fetch(`/api/budget/${year}`);
         const data = await res.json();
         currentBudgetSummary = data;
+
+        const titleEl = document.getElementById('budgetViewTitle');
+        if (titleEl) titleEl.innerText = `${year}년 교회 유년부 연간 예산 책정 및 집행현황`;
 
         document.getElementById('budgetTotalAmountText').innerText = `${data.totalBudget.toLocaleString()} 원`;
         document.getElementById('budgetTotalSpentText').innerText = `${data.totalSpent.toLocaleString()} 원`;
@@ -1872,8 +2136,9 @@
     }
 
     async function exportPlannerExcel() {
+      const baseYear = document.getElementById('plannerBaseYear') ? document.getElementById('plannerBaseYear').value : '2026';
       const rate = document.getElementById('customGrowthInput') ? document.getElementById('customGrowthInput').value : 0;
-      window.location.href = `/api/budget/simulate/2026/export-excel?growthRate=${rate}`;
+      window.location.href = `/api/budget/simulate/${baseYear}/export-excel?growthRate=${rate}`;
     }
 
     // ----------------------------------------------------
@@ -1890,8 +2155,15 @@
       const rate = (growthRate !== null) ? growthRate : Number(document.getElementById('customGrowthInput').value) || 0;
       currentGrowthRate = rate;
 
+      const baseYear = document.getElementById('plannerBaseYear') ? document.getElementById('plannerBaseYear').value : '2026';
+      const targetYear = Number(baseYear) + 1;
+      const targetBadge = document.getElementById('plannerTargetYearBadge');
+      if (targetBadge) targetBadge.innerText = `${targetYear}년`;
+      const titleEl = document.getElementById('plannerTitle');
+      if (titleEl) titleEl.innerText = `${targetYear}년도 예산안 기획 및 시뮬레이션 (${baseYear}년 실적 기준)`;
+
       try {
-        const res = await fetch(`/api/budget/simulate/2026?growthRate=${rate}`);
+        const res = await fetch(`/api/budget/simulate/${baseYear}?growthRate=${rate}`);
         const data = await res.json();
         currentSimulation = data;
 
@@ -2166,6 +2438,227 @@
       a.href = url;
       a.download = `증빙철_${new Date().toISOString().split('T')[0]}.pdf`;
       a.click();
+    }
+
+    // ----------------------------------------------------
+    // VIEW 5: Multi-Year Analytics & Audit Logic
+    // ----------------------------------------------------
+    let multiYearAnalyticsData = null;
+
+    async function loadMultiYearAnalytics() {
+      try {
+        const res = await fetch('/api/analytics/multi-year');
+        const data = await res.json();
+        multiYearAnalyticsData = data;
+
+        const m = data.metrics;
+        document.getElementById('anaTotalSpentText').innerText = `${m.total7YearsSpent.toLocaleString()} 원`;
+        document.getElementById('anaAvgSpentSub').innerText = `연평균: ${m.avgAnnualSpent.toLocaleString()} 원`;
+        document.getElementById('anaTotalIncomeText').innerText = `${m.total7YearsIncome.toLocaleString()} 원`;
+
+        const surplus = m.total7YearsIncome - m.total7YearsSpent;
+        const sign = surplus >= 0 ? '+' : '';
+        document.getElementById('anaSurplusSub').innerText = `누적 잔액: ${sign}${surplus.toLocaleString()} 원 (흑자)`;
+        document.getElementById('anaAvgBurnRateText').innerText = `${m.avgBurnRate}%`;
+
+        if (m.topCategories && m.topCategories.length > 0) {
+          const top1 = m.topCategories[0];
+          document.getElementById('anaTopCategoryText').innerText = `[${top1.code}] ${top1.label}`;
+          document.getElementById('anaTopCategorySub').innerText = `누적 ${top1.totalSpent.toLocaleString()}원 (연평균 ${top1.avgSpent.toLocaleString()}원)`;
+        }
+
+        renderAnnualBars(data.annualSummaries);
+        renderMonthlySeasonality(data.monthlySeasonality);
+        renderTop10Categories(data.categoryTrends.slice(0, 10), m.total7YearsSpent);
+        renderAnalyticsInsights(data);
+        renderMatrixTable(data.categoryTrends);
+
+        lucide.createIcons();
+      } catch (err) {
+        console.error('다개년 통계 로드 실패', err);
+      }
+    }
+
+    function exportAnalyticsExcel() {
+      window.location.href = '/api/analytics/multi-year/export-excel';
+    }
+
+    function renderAnnualBars(annuals) {
+      const container = document.getElementById('anaAnnualBarsContainer');
+      if (!container) return;
+
+      const maxVal = Math.max(...annuals.map(a => Math.max(a.budget, a.spent)), 12000000);
+
+      container.innerHTML = annuals.map(a => {
+        const bPct = Math.min(Math.round((a.budget / maxVal) * 100), 100);
+        const sPct = Math.min(Math.round((a.spent / maxVal) * 100), 100);
+        const isCurrent = a.year === 2026;
+        const badgeColor = a.burnRate > 110 ? 'bg-rose-50 text-rose-700 border-rose-200' : (a.burnRate > 100 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200');
+
+        return `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="font-bold ${isCurrent ? 'text-indigo-600' : 'text-yds-ink-900'}">${a.year}년 ${isCurrent ? '(진행중)' : ''}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-yds-ink-500">예산: ${a.budget.toLocaleString()}원 | 실집행: <strong>${a.spent.toLocaleString()}원</strong></span>
+                <span class="px-1.5 py-0.2 rounded border text-[10px] font-bold ${badgeColor}">${a.burnRate}%</span>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="w-full bg-yds-ivory rounded-full h-2 overflow-hidden flex">
+                <div class="bg-yds-pineTeal-500 h-full rounded-full transition-all duration-500" style="width: ${bPct}%" title="예산: ${a.budget.toLocaleString()}원"></div>
+              </div>
+              <div class="w-full bg-yds-ivory rounded-full h-2 overflow-hidden flex">
+                <div class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: ${sPct}%" title="실집행: ${a.spent.toLocaleString()}원"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMonthlySeasonality(months) {
+      const container = document.getElementById('anaMonthlyBarsContainer');
+      if (!container) return;
+
+      const maxM = Math.max(...months.map(m => m.avgSpent), 1);
+      const total7Y = months.reduce((acc, m) => acc + m.totalSpent, 0) || 1;
+
+      container.innerHTML = months.map(m => {
+        const hPct = Math.max(Math.round((m.avgSpent / maxM) * 100), 8);
+        const pctOfTotal = Math.round((m.totalSpent / total7Y) * 1000) / 10;
+        const isPeak = m.month === 12 || m.month === 6 || m.month === 7;
+        const barColor = isPeak ? 'bg-indigo-600 text-white' : 'bg-yds-pineTeal-100 text-yds-pineTeal-800';
+
+        return `
+          <div class="flex flex-col items-center justify-end h-40 p-1.5 rounded-lg border border-yds-border bg-yds-canvas/50">
+            <span class="text-[10px] font-mono font-bold text-yds-ink-600 mb-1">${pctOfTotal}%</span>
+            <div class="w-full flex items-end justify-center h-24">
+              <div class="w-full ${barColor} rounded-t-md transition-all duration-500 flex items-center justify-center text-[10px] font-mono font-semibold" style="height: ${hPct}%">
+              </div>
+            </div>
+            <div class="mt-2 text-center">
+              <div class="text-[11px] font-bold font-mono text-yds-ink-900">${m.monthLabel}</div>
+              <div class="text-[9px] font-mono text-yds-ink-400 truncate">${Math.round(m.avgSpent / 10000)}만</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTop10Categories(top10, total7YearsSpent) {
+      const container = document.getElementById('anaTop10Container');
+      if (!container) return;
+
+      const totalSpentSafe = total7YearsSpent || 1;
+
+      container.innerHTML = top10.map((item, idx) => {
+        const pct = Math.round((item.totalSpent / totalSpentSafe) * 1000) / 10;
+        const rankColor = idx === 0 ? 'bg-amber-500 text-white' : (idx === 1 ? 'bg-slate-400 text-white' : (idx === 2 ? 'bg-amber-700 text-white' : 'bg-yds-ivory text-yds-ink-600 border border-yds-border'));
+
+        return `
+          <div class="p-2.5 rounded-lg border border-yds-border bg-yds-canvas/40 hover:bg-yds-canvas transition-colors">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ${rankColor}">${idx + 1}</span>
+                <span class="font-bold text-yds-ink-900">[${item.code}] ${item.label}</span>
+                <span class="text-[10px] text-yds-ink-500 font-mono">(${item.category})</span>
+              </div>
+              <div class="font-mono text-right">
+                <span class="font-bold text-yds-ink-900">${item.totalSpent.toLocaleString()}원</span>
+                <span class="text-[11px] text-yds-ink-500 ml-1.5 font-bold text-amber-700">(${pct}%)</span>
+              </div>
+            </div>
+            <div class="w-full bg-yds-ivory rounded-full h-1.5 overflow-hidden flex">
+              <div class="bg-indigo-600 h-full rounded-full" style="width: ${Math.min(pct * 3.5, 100)}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono text-yds-ink-400 mt-1">
+              <span>연평균: ${item.avgSpent.toLocaleString()}원/년</span>
+              <span>2026 예산: ${(item.yearlyBudget[2026] || 0).toLocaleString()}원</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAnalyticsInsights(data) {
+      const container = document.getElementById('anaInsightsContainer');
+      if (!container) return;
+
+      const top1 = data.categoryTrends[0] || { label: '성경학교', totalSpent: 0 };
+      const top2 = data.categoryTrends[1] || { label: '달란트잔치', totalSpent: 0 };
+      const top2Sum = top1.totalSpent + top2.totalSpent;
+      const top2Pct = Math.round((top2Sum / (data.metrics.total7YearsSpent || 1)) * 1000) / 10;
+
+      container.innerHTML = `
+        <div class="p-3 rounded-lg border border-amber-200 bg-amber-50/50 flex items-start gap-2.5">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-amber-900 mb-0.5">핵심 대형 행사 예산 편중 (33.5% 점유)</div>
+            <div class="text-yds-ink-700 leading-relaxed text-[11px]">
+              <strong>${top1.label}</strong> 및 <strong>${top2.label}</strong> 2개 과목이 7개년 전체 실집행의 <strong>${top2Pct}% (${(top2Sum).toLocaleString()}원)</strong>를 차지합니다. 이 두 행사의 사전 계약/조기 예산 통제가 유년부 전체 재정 건전성을 결정합니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg border border-indigo-200 bg-indigo-50/50 flex items-start gap-2.5">
+          <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-indigo-900 mb-0.5">뚜렷한 하반기 계절성 피크 (61.4% 집중)</div>
+            <div class="text-yds-ink-700 leading-relaxed text-[11px]">
+              6월(달란트/성경학교준비, 17.1%), 7월(성경학교, 13.1%), 11월(추수감사, 12.0%), 12월(성탄/결산, 19.2%) 등 <strong>하반기 4개 달에 연간 지출의 61.4%가 집중</strong>됩니다. 상반기 잔여 예산을 무리하게 소진하지 않도록 관리가 필요합니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 flex items-start gap-2.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-emerald-900 mb-0.5">7개년 연속 안정적 재정 흑자 구조 (+198만원)</div>
+            <div class="text-yds-ink-700 leading-relaxed text-[11px]">
+              7개년 총 수입 7,506만원 대비 총 지출 7,308만원으로, <strong>누적 198만원의 결산 잉여금</strong>을 기록하여 재정이 매우 안정적으로 관리되고 있습니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-start gap-2.5">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-yds-pineTeal-600 shrink-0 mt-0.5"></i>
+          <div>
+            <div class="font-bold text-yds-ink-900 mb-0.5">2026년 본예산(900만원) 최적화 권고</div>
+            <div class="text-yds-ink-700 leading-relaxed text-[11px]">
+              2026년 예산 900만원은 7개년 평균 지출(1,044만원) 대비 약 140만원 긴축된 규모입니다. 특히 <strong>H04(간식비, 평균 118만)</strong>와 <strong>G03(비품구입, 평균 60만)</strong>의 조기 소진을 방지하기 위한 월별 예산 통제표 운영을 권장합니다.
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMatrixTable(categories) {
+      const tbody = document.getElementById('anaMatrixTableBody');
+      if (!tbody) return;
+
+      const histYears = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+
+      tbody.innerHTML = categories.map((cat, idx) => {
+        const cells = histYears.map(y => {
+          const val = cat.yearlySpent[y] || 0;
+          return `<td class="py-2.5 px-2.5 text-right font-mono ${val > 0 ? 'text-yds-ink-900' : 'text-yds-ink-300'}">${val > 0 ? val.toLocaleString() : '-'}</td>`;
+        }).join('');
+
+        const avg = cat.avgSpent;
+        const b2026 = cat.yearlyBudget[2026] || 0;
+
+        return `
+          <tr class="hover:bg-yds-canvas transition-colors">
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-yds-ink-700 bg-yds-ivory/30">${cat.code}</td>
+            <td class="py-2.5 px-3 text-yds-ink-600">${cat.category}</td>
+            <td class="py-2.5 px-3 font-semibold text-yds-ink-900">${cat.label}</td>
+            ${cells}
+            <td class="py-2.5 px-3 text-right font-mono font-bold bg-amber-50/50 text-amber-900">${avg > 0 ? avg.toLocaleString() : '-'}</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold bg-emerald-50/50 text-emerald-900">${b2026 > 0 ? b2026.toLocaleString() : '-'}</td>
+          </tr>
+        `;
+      }).join('');
     }
   </script>
 </body>

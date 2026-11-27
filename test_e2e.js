@@ -20,7 +20,7 @@ async function runE2ETests() {
   server = app.listen(3989);
   await new Promise(r => setTimeout(r, 500));
 
-  const client = axios.create({ baseURL: 'http://127.0.0.1:3989' });
+  const client = axios.create({ baseURL: 'http://localhost:3989', proxy: false });
 
   try {
     // 1. Church Income Codes
@@ -161,13 +161,27 @@ async function runE2ETests() {
     assert(plannerExcelRes.data.length > 3000, 'Planner excel report should be > 3000 bytes');
     console.log(`[PASS] 14. Next Year Planner Excel Report: ${plannerExcelRes.data.length} bytes generated.`);
 
+    // 15. Multi-Year Analytics API
+    const anaRes = await client.get('/api/analytics/multi-year');
+    assert.strictEqual(anaRes.status, 200);
+    assert(Array.isArray(anaRes.data.annualSummaries), 'annualSummaries should be an array');
+    assert(Array.isArray(anaRes.data.categoryTrends), 'categoryTrends should be an array');
+    assert(Array.isArray(anaRes.data.monthlySeasonality), 'monthlySeasonality should be an array');
+    console.log(`[PASS] 15. Multi-Year Analytics: ${anaRes.data.annualSummaries.length} years and ${anaRes.data.categoryTrends.length} categories.`);
+
+    // 16. Multi-Year Audit Comparative Excel Export
+    const anaExcelRes = await client.get('/api/analytics/multi-year/export-excel', { responseType: 'arraybuffer' });
+    assert.strictEqual(anaExcelRes.status, 200);
+    assert(anaExcelRes.data.length > 5000, 'Audit comparison excel should be > 5000 bytes');
+    console.log(`[PASS] 16. Multi-Year Audit Comparative Excel: ${anaExcelRes.data.length} bytes generated.`);
+
     // Restore official 2026 church budget (Sheet1 exact 9,000,000 KRW)
     const { seed2026Budget } = require('./server/seed_2026_budget');
     await seed2026Budget();
-    console.log('[PASS] 15. Official 2026 Budget Restored (9,000,000 KRW).');
+    console.log('[PASS] 17. Official 2026 Budget Restored (9,000,000 KRW).');
 
     console.log('\n========================================');
-    console.log('>>> ALL 15 E2E TESTS PASSED 100%! <<<');
+    console.log('>>> ALL 17 E2E TESTS PASSED 100%! <<<');
     console.log('========================================');
   } catch (err) {
     console.error('E2E TEST FAILED:', err.message, err.response ? err.response.data : '');

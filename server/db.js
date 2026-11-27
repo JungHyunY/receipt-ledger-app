@@ -590,6 +590,115 @@ function restoreDatabaseBackup(backup) {
   };
 }
 
+// ----------------------------------------------------
+// 5. Multi-Year Analytics & Audit Trends (7-Year Analysis)
+// ----------------------------------------------------
+function getMultiYearAnalytics() {
+  const { ALL_CHURCH_CODES, ALL_INCOME_CODES } = require('./church_rules');
+  const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+
+  // 1. Annual summaries
+  const annualSummaries = years.map(y => {
+    const bSummary = getBudgetSummary(y);
+    const incRow = db.prepare(`SELECT SUM(amount) as s FROM income_records WHERE date LIKE ? AND is_in_kind = 0`).get(`${y}-%`);
+    const totalIncome = Number(incRow?.s) || 0;
+    const balance = totalIncome - bSummary.totalSpent;
+    return {
+      year: y,
+      budget: bSummary.totalBudget,
+      spent: bSummary.totalSpent,
+      income: totalIncome,
+      balance,
+      burnRate: bSummary.overallBurnRate
+    };
+  });
+
+  // 2. Category multi-year trends
+  const categoryTrends = ALL_CHURCH_CODES.map(codeObj => {
+    const yearlySpent = {};
+    const yearlyBudget = {};
+    let sumSpent = 0;
+    let sumBudget = 0;
+    let yearsWithExpense = 0;
+
+    years.forEach(y => {
+      const expRow = db.prepare(`SELECT SUM(amount) as s FROM receipts WHERE date LIKE ? AND code = ?`).get(`${y}-%`, codeObj.code);
+      const bRow = db.prepare(`SELECT amount FROM budget_items WHERE year = ? AND code = ?`).get(y, codeObj.code);
+      const spent = Number(expRow?.s) || 0;
+      const bAmt = Number(bRow?.amount) || 0;
+
+      yearlySpent[y] = spent;
+      yearlyBudget[y] = bAmt;
+
+      if (y < 2026) {
+        sumSpent += spent;
+        sumBudget += bAmt;
+        if (spent > 0) yearsWithExpense++;
+      }
+    });
+
+    const avgSpent = Math.round(sumSpent / 7);
+    const avgBudget = Math.round(sumBudget / 7);
+    const avgBurnRate = avgBudget > 0 ? Math.round((avgSpent / avgBudget) * 1000) / 10 : (avgSpent > 0 ? 100 : 0);
+
+    return {
+      code: codeObj.code,
+      label: codeObj.label,
+      category: codeObj.category,
+      yearlySpent,
+      yearlyBudget,
+      totalSpent: sumSpent,
+      avgSpent,
+      avgBudget,
+      avgBurnRate,
+      yearsWithExpense
+    };
+  }).sort((a, b) => b.totalSpent - a.totalSpent);
+
+  // 3. Monthly seasonality across all historical years (2019~2025)
+  const monthlySeasonality = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const mStr = String(m).padStart(2, '0');
+    let mTotal = 0;
+    years.filter(y => y < 2026).forEach(y => {
+      const row = db.prepare(`SELECT SUM(amount) as s FROM receipts WHERE date LIKE ?`).get(`${y}-${mStr}-%`);
+      mTotal += Number(row?.s) || 0;
+    });
+    return {
+      month: m,
+      monthLabel: `${m}월`,
+      totalSpent: mTotal,
+      avgSpent: Math.round(mTotal / 7)
+    };
+  });
+
+  // 4. Cumulative totals & Metrics
+  const completedYears = annualSummaries.filter(a => a.year < 2026);
+  const total7YearsSpent = completedYears.reduce((acc, a) => acc + a.spent, 0);
+  const total7YearsIncome = completedYears.reduce((acc, a) => acc + a.income, 0);
+  const total7YearsBudget = completedYears.reduce((acc, a) => acc + a.budget, 0);
+  const avgAnnualSpent = Math.round(total7YearsSpent / 7);
+  const avgAnnualIncome = Math.round(total7YearsIncome / 7);
+  const avgBurnRate = Math.round((completedYears.reduce((acc, a) => acc + a.burnRate, 0) / 7) * 10) / 10;
+
+  return {
+    years,
+    annualSummaries,
+    categoryTrends,
+    monthlySeasonality,
+    metrics: {
+      total7YearsSpent,
+      total7YearsIncome,
+      total7YearsBudget,
+      avgAnnualSpent,
+      avgAnnualIncome,
+      avgBurnRate,
+      topCategories: categoryTrends.slice(0, 5),
+      peakMonths: [...monthlySeasonality].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 3)
+    }
+  };
+}
+
 module.exports = {
   db,
   getAllReceipts,
@@ -612,5 +721,7 @@ module.exports = {
   getIncomeSummary,
   // Backup / Restore
   exportDatabaseBackup,
-  restoreDatabaseBackup
+  restoreDatabaseBackup,
+  // Analytics
+  getMultiYearAnalytics
 };
